@@ -21,10 +21,10 @@ You can run from script or shell. To run from script, you can check the test jup
 Complete run (Quality control, Residue Based and Interaction based analysis with all visualizations) with input file from terminal:
 ```
 # for .pdb input
-dynabench -input_file=input_file.pdb --commands=all_tables,all_plots
+dynabench -input_file=input_file.pdb --commands=all_analysis,all_plots
 
 #for .dcd input
-dynabench -input_file=input_file.dcd --commands=all_tables,all_plots --dcd_pdb=input_pdb.pdb
+dynabench -input_file=input_file.dcd --commands=all_analysis,all_plots --dcd_pdb=input_pdb.pdb
 ```
 To run with json file from terminal:
 ```
