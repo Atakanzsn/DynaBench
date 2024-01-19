@@ -1,6 +1,5 @@
 # DynaBench
-Dynabench package consists of 2 parts. Analysis and Vizualization. Quality control, Residue based and Interation based analysis are performed. RMSD, RG, and RMSF analysis under the Quality Control; SASA, biophysical type, and ebergy analysis under the Residue Based; hydrogen, hydrophobic and ionic bond analysis are performed under the Interaction Based analysis. Outputs are in the csv form under the *tables* folder. Package accepts .pdb and .dcd inputs.
-For visualization, outputs from Quality Control, Residue Based and Interaction Based analysis are used.
+The Dynabench package consists of 2 parts: analysis and visualization. Quality control, Residue-based, and Interation-based analysis are performed. RMSD, RG, and RMSF analysis under the Quality Control; SASA, biophysical type, and energy analysis under the Residue Based; hydrogen, hydrophobic, and ionic bond analysis are performed under the Interaction-Based analysis. Outputs are in the CSV form under the tables folder. The package accepts .pdb and .dcd inputs. For visualization, outputs from Quality Control, Residue Based and Interaction Based analysis are used.
 ## Installation
 To install to package, inside the DynaBench folder, run the following commands in the shell.
 ```
