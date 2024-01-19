@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 
 #required?
 parser.add_argument('-ip', '--input_file', type=str, help="Input File in .dcd or .pfb formats. If .dcd, pelase provide .pdb file with '--dcd_pdb' command.")
-parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_tables', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondPie', 'PlotBondBar', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
+parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondPie', 'PlotBondBar', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
@@ -101,7 +101,7 @@ if args.table_json:
 else:
     a_json_ = False
     if args.commands:
-        if 'all_tables' in commands:
+        if 'all_analysis' in commands:
             table_commands = ['QualityControl', 'ResidueBased', 'InteractionBased']
         else:
             table_commands = [x for x in commands if 'plot' not in x.lower()]
