@@ -1,0 +1,20 @@
+name: DynaBench
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - ipywidgets
+  - pip
+  - ipykernel
+  - pdbfixer
+  - jupyter
+  - python=3.8
+  - seaborn
+  - mdanalysis
+  - python-kaleido
+  - jsonpickle
+  - moviepy
+  - matplotlib
+  - pip:
+     - pdb-tools
+     - freesasa
