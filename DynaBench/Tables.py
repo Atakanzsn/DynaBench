@@ -18,7 +18,7 @@ freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
 
 class dynabench:
-    def __init__(self, inp_file, stride=1, split_models=False, chains=None, job_name=None, dcd_pdb=None, show_time_as="Frame", timestep=1.0, time_unit=None):
+    def __init__(self, inp_file, stride=1, split_models=False, chains=None, job_name=None, dcd_pdb=None, show_time_as="Frame", timestep=None, time_unit=None):
         """A class to perform Quality Control, Residue Based and Interaction Based analyses on MD simulations. Results of the analyses are printed as .csv files under a folder named 'tables'. MD outputs with any exception are transformed to .pdb file and the analyses are run through this .pdb file. Number of frames that will be fetched from initial input file to be analysed can be set by stride value.
         
         Keyword arguments:
@@ -30,10 +30,14 @@ class dynabench:
         handler.test_inp_path(inp_file)
         handler.test_stride(stride)
         handler.test_split_models(split_models)
-        
+
+        if timestep is None:
+            self.timestep = 1.0
+        else:
+            self.timestep = timestep 
+
         #params
         self.time_Type = show_time_as
-        self.timestep = timestep
         self.time_unit = time_unit
         self.inp_file_ = inp_file
         self.split_models_ = split_models
@@ -234,7 +238,7 @@ class dynabench:
             self.timetype = time_type
             self.timestep = timestep
             if time_type == 'Time':
-                self.u = mda.Universe(pdb_file, in_memory=True, dt=timestep)
+                self.u = mda.Universe(pdb_file, dt=timestep)
                 if time_unit.lower() == 'ns' or time_unit.lower() == 'nanosecond':
                     self.u.trajectory.units = {'time':'nanosecond', 'length': 'Angstrom'}
             else:
