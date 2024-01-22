@@ -5,8 +5,12 @@ The Dynabench package consists of 2 parts: analysis and visualization. Quality c
 
 **We recommend you to use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
 
+**If you don't have, plase download the git from here:https://git-scm.com/downloads**
+
 To install the package, inside the DynaBench folder, run the following commands in the shell.
 ```
+git clone https://github.com/Atakanzsn/DynaBench.git
+cd DynaBench
 conda env create -f requirements.yml
 conda activate DynaBench
 python -m ipykernel install --user --name dynabench
