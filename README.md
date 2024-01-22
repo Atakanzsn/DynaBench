@@ -1,9 +1,9 @@
 # DynaBench
 The Dynabench package consists of 2 parts: analysis and visualization. Quality control, Residue-based, and Interaction-based analysis are performed. RMSD, RG, and RMSF analysis under the Quality Control; SASA, biophysical type, and energy analysis under the Residue-Based; hydrogen, hydrophobic, and ionic bond analysis are performed under the Interaction-Based analysis. Outputs are in the CSV form under the tables folder. The package accepts .pdb and .dcd inputs. For visualization, outputs from Quality Control, Residue Based and Interaction Based analysis are used.
 ## Installation
-**Windows users may need to download C++ compiler. You can download from here: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+**Windows users may need to download C++ compiler. You can download from here: https://visualstudio.microsoft.com/visual-cpp-build-tools/**
 
-Also windows users should install WSL, ones can install by the following link:https://learn.microsoft.com/en-us/windows/wsl/install**
+**Also windows users should install WSL, ones can install by the following link:https://learn.microsoft.com/en-us/windows/wsl/install**
 
 **We recommend you to use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
 
