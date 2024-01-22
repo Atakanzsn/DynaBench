@@ -79,8 +79,6 @@ class dynabench:
             if self.stride != 1:
                 name = file_name.split("\\")[-1]
                 out_file = os.path.join(self.job_path, f"{name}_stride{stride}.pdb")
-                print(self.job_path)
-                print(out_file)
                 u = mda.Universe(inp_file)
 
                 with mda.Writer(out_file, u.atoms.n_atoms) as W:
