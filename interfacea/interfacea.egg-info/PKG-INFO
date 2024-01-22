@@ -5,6 +5,8 @@ Summary: Open-source library to analyze the structure and energetics of biomolec
 Home-page: https://github.com/joaorodrigues/interfacea
 Author: Joao Rodrigues
 Author-email: j.p.g.l.m.rodrigues@gmail.com
+License: UNKNOWN
+Platform: UNKNOWN
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Intended Audience :: Developers
 Classifier: Intended Audience :: Science/Research
@@ -17,11 +19,6 @@ Classifier: Topic :: Scientific/Engineering :: Bioinformatics
 Classifier: Topic :: Scientific/Engineering :: Computational Biology
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 License-File: LICENSE
-Requires-Dist: networkx
-Requires-Dist: numpy
-Requires-Dist: openmm
-Requires-Dist: pandas
-Requires-Dist: pdbfixer
 
 
 [![Travis Continuous Integration](https://travis-ci.com/JoaoRodrigues/interfacea.svg?branch=master)](https://travis-ci.com/JoaoRodrigues/interfacea)
@@ -114,3 +111,5 @@ interfacea runs on **Python 3.6+** only and requires the following packages:
 Dependencies should be installed via ``conda`` using
 ``conda env create -f requirements.yml`` or by following instructions on their
 websites.
+
+

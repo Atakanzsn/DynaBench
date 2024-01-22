@@ -322,8 +322,10 @@ class Plotter:
 
             patches, texts, autotexts = ax.pie(np.array(list(sorted_p.values())), labels=list(sorted_p.keys()), autopct='%.2f%%', colors=palet)
 
+
             for autotext, text in zip(autotexts, texts):
                 num = float(autotext.get_text()[:-1])
+                autotext.set_color('white')
                 if num < thr:
                     autotext.set_text(" ")
                     text.set_text("")
