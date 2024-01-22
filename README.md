@@ -3,6 +3,8 @@ The Dynabench package consists of 2 parts: analysis and visualization. Quality c
 ## Installation
 **Windows users may need to download C++ compiler. You can download from here: https://visualstudio.microsoft.com/visual-cpp-build-tools/**
 
+**We recommend you to use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
+
 To install the package, inside the DynaBench folder, run the following commands in the shell.
 ```
 conda env create -f requirements.yml
