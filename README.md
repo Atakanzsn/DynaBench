@@ -1,11 +1,15 @@
 # DynaBench
-The Dynabench package consists of 2 parts: analysis and visualization. Quality control, Residue-based, and Interaction-based analysis are performed. RMSD, RG, and RMSF analysis under the Quality Control; SASA, biophysical type, and energy analysis under the Residue-Based; hydrogen, hydrophobic, and ionic bond analysis are performed under the Interaction-Based analysis. Outputs are in the CSV form under the tables folder. The package accepts .pdb and .dcd inputs. For visualization, outputs from Quality Control, Residue Based and Interaction Based analysis are used.
+The Dynabench package consists of 2 parts: analysis and visualization. Quality control, Residue-based, and Interaction-based analysis are performed. RMSD, RG, and RMSF analysis under the Quality Control; SASA, biophysical type, and energy analysis under the Residue-Based; hydrogen, hydrophobic, and ionic bond analysis are performed under the Interaction-Based analysis. Outputs are in the CSV form under the tables folder. The package accepts .pdb and .dcd inputs. Outputs from Quality Control, Residue Based and Interaction Based analysis are used for visualization.
 ## Installation
-**Windows users may need to download C++ compiler. You can download from here: https://visualstudio.microsoft.com/visual-cpp-build-tools/**
+**Windows users may need to download the WSL and, C++ compiler. The programs can be downloaded by the following links:**
 
-**We recommend you to use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
+C++ Compiler:https://visualstudio.microsoft.com/visual-cpp-build-tools/
 
-**If you don't have, plase download the git from here:https://git-scm.com/downloads**
+WSL: https://learn.microsoft.com/en-us/windows/wsl/install
+
+**We recommend you use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
+
+**If you don't have one, please download the git from here:https://git-scm.com/downloads**
 
 To install the package, inside the DynaBench folder, run the following commands in the shell.
 ```
