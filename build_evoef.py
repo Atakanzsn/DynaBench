@@ -6,10 +6,10 @@ import shutil
 def build_evoef():
     
     cp = os.getcwd()
-    os.chdir('..\..')
+    #os.chdir('..\..')
 
-    #os.mkdir('perm')
-    #shutil.move('DynaBench', 'perm')
+    os.mkdir('perm')
+    shutil.move('DynaBench', 'perm')
 
     import DynaBench
 
@@ -36,6 +36,8 @@ def build_evoef():
         os.system("wsl g++ -O3 --fast-math -o EvoEF src/*.cpp")
         os.chdir("../")
     os.chdir(cp)
+    shutil.move('./perm/DynaBench', cp)
+    os.rmdir('perm')
 
 build_evoef()
 
