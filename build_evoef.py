@@ -6,7 +6,7 @@ import shutil
 def build_evoef():
     
     cp = os.getcwd()
-    os.chdir('..')
+    os.chdir('..\..')
 
     #os.mkdir('perm')
     #shutil.move('DynaBench', 'perm')
