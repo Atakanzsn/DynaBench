@@ -1,6 +1,22 @@
 # DynaBench
 The Dynabench package consists of 2 parts: analysis and visualization. Quality control, Residue-based, and Interaction-based analysis are performed. RMSD, RG, and RMSF analysis under the Quality Control; SASA, biophysical type, and energy analysis under the Residue-Based; hydrogen, hydrophobic, and ionic bond analysis are performed under the Interaction-Based analysis. Outputs are in the CSV form under the tables folder. The package accepts .pdb and .dcd inputs. Outputs from Quality Control, Residue Based and Interaction Based analysis are used for visualization.
-## Installation
+
+## Usage
+### System Dependencies
+* python3 (3.8 or higher) or anaconda3
+### Python Dependencies
+* ipywidgets
+* ipykernel
+* pdbfixer
+* seaborn
+* mdanalysis
+* jsonpickle
+* moviepy
+* matplotlib
+* pdb-tools
+* freesasa
+
+### Installation
 **Windows users may need to download the WSL and, C++ compiler. The programs can be downloaded by the following links:**
 
 C++ Compiler:https://visualstudio.microsoft.com/visual-cpp-build-tools/
@@ -11,15 +27,31 @@ WSL: https://learn.microsoft.com/en-us/windows/wsl/install
 
 **If you don't have one, please download the git from here:https://git-scm.com/downloads**
 
-To install the package, inside the DynaBench folder, run the following commands in the shell.
+### Clone the repository
 ```
 git clone https://github.com/Atakanzsn/DynaBench.git
+```
+```
 cd DynaBench
+```
+### Create DynaBench environment
+```
 conda env create -f requirements.yml
+```
+```
 conda activate DynaBench
+```
+### Create IpyKernel for DynaBench
+```
 python -m ipykernel install --user --name dynabench
+```
+### Build the DynaBench
+```
 python setup.py build
 python setup.py install
+```
+### Build EvoEF for energy analysis
+```
 python build_evoef.py
 ```
 ## Tests
@@ -30,19 +62,21 @@ You can run from a script or shell. To run from the script, you can check the te
 
 ### Run from terminal
 Complete run (Quality control, Residue-Based, and Interaction-Based analysis with all visualizations) with input file from the terminal:
+#### With .pdb input
 ```
-# for .pdb input
 dynabench -input_file=input_file.pdb --commands=all_analysis,all_plots
-
-#for .dcd input
+```
+#### With .dcd input
+```
 dynabench -input_file=input_file.dcd --commands=all_analysis,all_plots --dcd_pdb=input_pdb.pdb
 ```
-To run with JSON file from the terminal:
+
+#### To run with JSON file from the terminal:
 ```
 dynabench --table_json=table_params.json --plot_json=plot_params.json
 ```
 
-For help in running from the terminal with direct commands: 
+#### For more commands to run from terminal: 
 ```
 dynabench -h
 ```
