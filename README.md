@@ -17,15 +17,16 @@ The Dynabench package consists of 2 parts: analysis and visualization. Quality c
 * freesasa
 
 ### Installation
+#### Note for Windows users:
+  **DynaBench uses EvoEF for energy calculations. Before installing the package, please install the EvoEF (https://github.com/tommyhuangthu/EvoEF) by yourself and configure to your laptop.After installing the EvoeF, you can follow the installation steps.**
+  
 **Windows users may need to download the WSL and, C++ compiler. The programs can be downloaded by the following links:**
 
-C++ Compiler:https://visualstudio.microsoft.com/visual-cpp-build-tools/
+  C++ Compiler:https://visualstudio.microsoft.com/visual-cpp-build-tools/
+    
+  WSL: https://learn.microsoft.com/en-us/windows/wsl/install
 
-WSL: https://learn.microsoft.com/en-us/windows/wsl/install
-
-**We recommend you use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
-
-**If you don't have one, please download the git from here:https://git-scm.com/downloads**
+**We recommend you use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs. If you don't have one, please download the git from here:https://git-scm.com/downloads**
 
 ### Clone the repository
 ```
@@ -51,8 +52,13 @@ python setup.py build
 python setup.py install
 ```
 ### Build EvoEF for energy analysis
+#### Linuc or MacOS users
 ```
 python build_evoef.py
+```
+#### Windows users
+```
+python build_evoef.py --evoef_path=absolute_path_of_EvoEF_folder
 ```
 ## Tests
 Please run the jupyter notebooks in the **tests** folder to test the package. They will create folders with *tests* at the end. Check outputs with the folder without the *tests* at the end. Outputs should be identical.
