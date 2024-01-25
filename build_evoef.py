@@ -18,41 +18,47 @@ def build_evoef():
 
     path = DynaBench.__file__[:-12]
 
+    try:
 
-    if platform == "win32":
-        def install_evoef(path):
+        if platform == "win32":
+            def install_evoef(path):
+                
+                dynabench_destination = DynaBench.__file__[:-12]
+                print(dynabench_destination)
+                shutil.move(path, dynabench_destination)
+
+
+            parser.add_argument("--evoef_path", type=str)
+            args = parser.parse_args()
+
+            install_evoef(args.evoef_path)
             
-            dynabench_destination = DynaBench.__file__[:-12]
-            print(dynabench_destination)
-            shutil.move(path, dynabench_destination)
+        else:
+
+            os.chdir(path)
 
 
-        parser.add_argument("--evoef_path", type=str)
-        args = parser.parse_args()
+            if platform == "linux" or platform == "linux2":
+                os.system('git clone https://github.com/tommyhuangthu/EvoEF.git')
+                os.chdir("./EvoEF/")
+                os.system("g++ -O3 --fast-math -o EvoEF src/*.cpp")
+                os.chdir("../")
 
-        install_evoef(args.evoef_path)
-        
-    else:
+            elif platform == "darwin":
+                os.system('git clone https://github.com/tommyhuangthu/EvoEF.git')
+                os.chdir("./EvoEF/")
+                os.system("g++ -O3 -ffast-math -o EvoEF src/*.cpp")
+                os.chdir("../")
 
-        os.chdir(path)
+            os.chdir(cp)
 
 
-        if platform == "linux" or platform == "linux2":
-            os.system('git clone https://github.com/tommyhuangthu/EvoEF.git')
-            os.chdir("./EvoEF/")
-            os.system("g++ -O3 --fast-math -o EvoEF src/*.cpp")
-            os.chdir("../")
-
-        elif platform == "darwin":
-            os.system('git clone https://github.com/tommyhuangthu/EvoEF.git')
-            os.chdir("./EvoEF/")
-            os.system("g++ -O3 -ffast-math -o EvoEF src/*.cpp")
-            os.chdir("../")
-
-        os.chdir(cp)
-
-    shutil.move('./perm/DynaBench', cp)
-    os.rmdir('perm')
+        shutil.move('./perm/DynaBench', cp)
+        os.rmdir('perm')
+    finally:
+        if os.path.exists("./perm/DynaBench"):
+            shutil.move('./perm/DynaBench', cp)
+            os.rmdir('perm')  
 
 build_evoef()
 
