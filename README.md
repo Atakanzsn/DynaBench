@@ -18,15 +18,10 @@ The Dynabench package consists of 2 parts: analysis and visualization. Quality c
 
 ### Installation
 #### Note for Windows users:
-  **DynaBench uses EvoEF for energy calculations. Before installing the package, please install the EvoEF (https://github.com/tommyhuangthu/EvoEF) by yourself and configure to your laptop.After installing the EvoeF, you can follow the installation steps.**
-  
-**Windows users may need to download the WSL and, C++ compiler. The programs can be downloaded by the following links:**
+  >**DynaBench uses EvoEF for energy calculations. Before installing the package, please install the [EvoEF](https://github.com/tommyhuangthu/EvoEF) by yourself and configure to your laptop. After installing the EvoeF, you can follow the installation steps.**
+>**Windows users also may need to download the [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and, [C++ compiler](https://visualstudio.microsoft.com/visual-cpp-build-tools/).**
 
-  C++ Compiler:https://visualstudio.microsoft.com/visual-cpp-build-tools/
-    
-  WSL: https://learn.microsoft.com/en-us/windows/wsl/install
-
-**We recommend you use git clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs. If you don't have one, please download the git from here:https://git-scm.com/downloads**
+**We recommend you use [git](https://git-scm.com/downloads) clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
 
 ### Clone the repository
 ```
@@ -64,9 +59,43 @@ python build_evoef.py --evoef_path=absolute_path_of_EvoEF_folder
 Please run the jupyter notebooks in the **tests** folder to test the package. They will create folders with *tests* at the end. Check outputs with the folder without the *tests* at the end. Outputs should be identical.
 
 ## Run
-You can run from a script or shell. To run from the script, you can check the test jupyter notebooks. To run from the terminal, you can either run with JSON file or direct commands. If running from the terminal, please do not run inside the DynaBench folder. It may cause import errors.
+You can run from a script or shell. To run from the terminal, you can either run with JSON file or you can choose options from the shell. If running from the terminal, please do not run inside the DynaBench folder. It may cause import errors.
+#### Example Script
+```
+import DynaBench
+
+#load trajectory .dcd and topology .pdb file
+mol = DynaBench.dynabench(inp_file='your_trajectory_path', dcd_pdb='your_topology_path' split_models=False, show_time_as='Frame')
+
+#define plotter class
+draw = DynaBench.Plotter(job_name=mol.job_name)
+
+#Quality control analysis and visualization
+mol.run_quality_control(rmsd_data={'ref_struc':None, 'ref_frame':0})
+
+draw.plot_rmsd(path=None)
+draw.plot_rg(path=None)
+#RMSF plot can be plotted after residue-based analysis due to marking of interface residues on the plot.
+
+#Residue Based analysis and visualization
+mol.run_res_based()
+
+draw.plot_rmsf(rmsf_path=None, intf_path=None)
+draw.plot_int_energy(thereshold=50.0, res_path=None, intf_path=None)
+draw.plot_biophys(path=None)
+
+#Interaction Based analysis and visualization
+mol.run_inter_based()
+
+draw.plot_bond_freq_barplot(path=None)
+
+#Get .json files for analysis and plots.
+mol._get_params_()
+draw._get_params_()
+```
 
 ### Run from terminal
+
 Complete run (Quality control, Residue-Based, and Interaction-Based analysis with all visualizations) with input file from the terminal:
 #### With .pdb input
 ```
