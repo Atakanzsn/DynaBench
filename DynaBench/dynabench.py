@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 
 #required?
 parser.add_argument('-ip', '--input_file', type=str, help="Input File in .dcd or .pfb formats. If .dcd, pelase provide .pdb file with '--dcd_pdb' command.")
-parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondPie', 'PlotBondBar', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
+parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondBar', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
@@ -64,11 +64,7 @@ parser.add_argument('--rmsd_tpath', type=str, help="CSV data path for RMSD plot.
 parser.add_argument('--rg_tpath', type=str, help="CSV data path for RG plot.") #rg draw table path
 parser.add_argument('--rmsf_tpath', type=str, help="CSV data path for RMSF plot.") #rmsf draw table path
 parser.add_argument('--rmsf_itpath', type=str, help="CSV data including interface residues path for RMSF plot.") #rmsf draw interface res. path
-parser.add_argument('--biophy_tpath', type=str, help="CSV data path of residue based analyse.") #biophysical type draw table path
-parser.add_argument('--pie_tpath', type=str, help="CSV data path of interaction based analyse.") #piechart draw table path
-parser.add_argument('--pie_ionic_thr', type=float, help="Thereshold value for ionic bonds in piechart.") #piechart ionic thereshold  
-parser.add_argument('--pie_hph_thr', type=float, help="Thereshold value for hydrophobic bonds in piechart.") #piechart hph thereshold  
-parser.add_argument('--pie_hbond_thr', type=float, help="Thereshold value for hydrogen bonds in piechart.") #piechart hbond thereshold  
+parser.add_argument('--biophy_tpath', type=str, help="CSV data path of residue based analyse.") #biophysical type draw table path 
 parser.add_argument('--bondfreq_tpath', type=str, help="CSV data of interaction based analyse.") #bondfreq draw table path
 parser.add_argument('--int_ene_itpath', type=str, help="CSV data path of residue based analyse.") #interaction energy draw interface res. path
 parser.add_argument('--int_ene_tpath', type=str, help="CSV data including interface residues path for interaction energy plot.") #interaction energy draw table path
@@ -122,8 +118,6 @@ if args.plot_json:
         plot_commands.append('PlotRG')
     if plot_data['PlotRMSF']['Run']:
         plot_commands.append('PlotRMSF')
-    if plot_data['PlotBondPie']['Run']:
-        plot_commands.append('PlotBondPie')
     if plot_data['PlotBondBar']['Run']:
         plot_commands.append('PlotBondBar')
     if plot_data['PlotBiophys']['Run']:
@@ -136,7 +130,7 @@ else:
     p_json = False
     if args.commands:
         if 'all_plots' in commands:
-            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondPie', 'PlotBondBar', 'PlotBiophys', 'PlotResEne']
+            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondBar', 'PlotBiophys', 'PlotResEne']
         else:
             plot_commands = [x for x in commands if 'plot' in x.lower()]
     else:
@@ -318,36 +312,6 @@ def main():
             
             draw.plot_biophys(path=biophys_tpath)
             print('Biophysical Type plot is done!\n')
-            print_stars(1)
-            print("\n")
-
-        if 'PlotBondPie' in plot_commands:
-
-            if p_json:
-                pie_tpath = plot_data['PlotBondPie']['pie_table_path']
-                pie_ionic_thr = plot_data['PlotBondPie']['pie_ionic_th']
-                pie_hph_thr = plot_data['PlotBondPie']['pie_hph_th']
-                pie_hbond_thr = plot_data['PlotBondPie']['pie_hbond_th']
-                pie_palette = plot_data['PlotBondPie']['pie_palette']
-                
-                if pie_palette:
-                    draw._pie_palette = pie_palette
-
-
-            else:
-                pie_tpath = args.pie_tpath
-                pie_ionic_thr = args.pie_ionic_thr
-                pie_hph_thr = args.pie_hph_thr
-                pie_hbond_thr =args.pie_hbond_thr
-
-            if not pie_ionic_thr:
-                pie_ionic_thr = 0.0
-            if not pie_hbond_thr:
-                pie_hbond_thr = 4.0
-            if not pie_hph_thr:
-                pie_hph_thr=3.0
-            draw.plot_bond_freq_piechart(hbond_thr=pie_hbond_thr, hph_thr=pie_hph_thr, ionic_thr=pie_ionic_thr, path=pie_tpath)
-            print('Bond Frequencies Pie Chart is done!\n')
             print_stars(1)
             print("\n")
 
