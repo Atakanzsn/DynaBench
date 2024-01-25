@@ -65,7 +65,8 @@ You can run from a script or shell. To run from the terminal, you can either run
 import DynaBench
 
 #load trajectory .dcd and topology .pdb file
-mol = DynaBench.dynabench(inp_file='your_trajectory_path', dcd_pdb='your_topology_path' split_models=False, show_time_as='Frame')
+mol = DynaBench.dynabench(inp_file='your_trajectory_path', dcd_pdb='your_topology_path',
+ split_models=False, show_time_as='Frame')
 
 #define plotter class
 draw = DynaBench.Plotter(job_name=mol.job_name)
