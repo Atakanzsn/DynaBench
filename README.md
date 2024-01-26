@@ -1,5 +1,26 @@
 # DynaBench
-The Dynabench package consists of 2 parts: analysis and visualization. Quality control, Residue-based, and Interaction-based analysis are performed. RMSD, RG, and RMSF analysis under the Quality Control; SASA, biophysical type, and energy analysis under the Residue-Based; hydrogen, hydrophobic, and ionic bond analysis are performed under the Interaction-Based analysis. Outputs are in the CSV form under the tables folder. The package accepts .pdb and .dcd inputs. Outputs from Quality Control, Residue Based and Interaction Based analysis are used for visualization.
+The Dynabench package is an analysis pipeline for molecular dynamic simulations. The package runs analysis in three parts:
+* **Quality Control:** RMSD, RG, and RMSF analysis.
+* **Residue Based:** Biophysical and core-rim classifications; SASA, intermolecular and intramolecular energy analysis.
+* **Interaction Based:** Hydrogen, Hydrophobic, and Ionic Bond analysis with corresponding pairwise residues.
+
+### DynaBench Architecture
+DynaBench calls several python packages and custom scripts to run Quality Control, Residue Based, and Interaction Based analysis. According to the results of the analysis, by merging some results, visualizations are made. 
+
+![DynaBench (2)](https://github.com/Atakanzsn/DynaBench/assets/63709928/77616949-c3e7-41f4-8e0b-2fcf29c60025)
+
+
+### DynaBench Output Files
+DynaBench output files are stored in two folders: *tables* and *figures*. Analysis results are stored in the *tables* folder in .csv form while visualization are stored in the *figures* folder.
+
+
+![image](https://github.com/Atakanzsn/DynaBench/assets/63709928/26a37b87-5660-4df4-ba27-b76f6a76d827)
+
+* **QualityControl-overtime.csv:** Includes RMSD and RG analysis results for each chain and complex.
+* **QualityControl-overres.csv:** Includes RMSF analysis results for each chain.
+* **residue_based_tbl.csv:** Includes residue based biophysical and core-rim classification, SASA analysis, intermolecular and intramolecular energy analysis results for given frames.
+* **interface_label_perc.csv:** Includes the class in which the residues are found most frequently throughout the simulation and what percentage of the given frames they are in that class.
+* **int_based_table.csv:** Includes the Hydrogen, Hydrophobic, and Ionics bond with interacting pairwise atoms and residues for given frames.
 
 ## Usage
 ### System Dependencies
