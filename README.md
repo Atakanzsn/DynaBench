@@ -1,3 +1,5 @@
+# UNDER DEVELOPMENT. USE MAIN BRANCH.
+
 # DynaBench
 The Dynabench package is an analysis pipeline for molecular dynamic simulations. The package runs analysis in three parts:
 * **Quality Control:** RMSD, RG, and RMSF analysis.
@@ -7,7 +9,9 @@ The Dynabench package is an analysis pipeline for molecular dynamic simulations.
 ### DynaBench Architecture
 DynaBench calls several python packages and custom scripts to run Quality Control, Residue Based, and Interaction Based analysis. According to the results of the analysis, by merging some results, visualizations are made. 
 
-![DynaBench (2)](https://github.com/Atakanzsn/DynaBench/assets/63709928/77616949-c3e7-41f4-8e0b-2fcf29c60025)
+
+![DynaBench (3)](https://github.com/Atakanzsn/DynaBench/assets/63709928/d71883de-b440-44a7-ad0f-defb29d7eeee)
+
 
 
 ### DynaBench Output Files
@@ -67,15 +71,9 @@ python -m ipykernel install --user --name dynabench
 python setup.py build
 python setup.py install
 ```
-### Build EvoEF for energy analysis
-#### Linuc or MacOS users
-```
-python build_evoef.py
-```
-#### Windows users
-```
-python build_evoef.py --evoef_path=absolute_path_of_EvoEF_folder
-```
+### Build FoldX for Energy Analysis
+DynaBench uses FoldX for energy analysis. You should download [FoldX](https://foldxsuite.crg.eu/) by yourself. While running Residue-Based analysis, you should give FoldX folder path which includes the FoldX executable to the function.
+
 ## Tests
 Please run the jupyter notebooks in the **tests** folder to test the package. They will create folders with *tests* at the end. Check outputs with the folder without the *tests* at the end. Outputs should be identical.
 
@@ -100,16 +98,20 @@ draw.plot_rg(path=None)
 #RMSF plot can be plotted after residue-based analysis due to marking of interface residues on the plot.
 
 #Residue Based analysis and visualization
-mol.run_res_based()
+
+mol.run_res_based('foldx_folder_path')
+
 
 draw.plot_rmsf(rmsf_path=None, intf_path=None)
 draw.plot_int_energy(thereshold=50.0, res_path=None, intf_path=None)
 draw.plot_biophys(path=None)
 
 #Interaction Based analysis and visualization
-mol.run_inter_based()
 
-draw.plot_bond_freq_barplot(path=None)
+mol.run_inter_based('foldx_folder_path')
+
+draw.plot_pairwise_freq(path=None)
+
 
 #Get .json files for analysis and plots.
 mol._get_params_()
@@ -121,11 +123,11 @@ draw._get_params_()
 Complete run (Quality control, Residue-Based, and Interaction-Based analysis with all visualizations) with input file from the terminal:
 #### With .pdb input
 ```
-dynabench -input_file=input_file.pdb --commands=all_analysis,all_plots
+dynabench -input_file=input_file.pdb --commands=all_analysis,all_plots --foldx_path=foldx_folder_path
 ```
 #### With .dcd input
 ```
-dynabench -input_file=input_file.dcd --commands=all_analysis,all_plots --dcd_pdb=input_pdb.pdb
+dynabench -input_file=trajectory.dcd --commands=all_analysis,all_plots --dcd_pdb=topology.pdb --foldx_path=foldx_folder_path
 ```
 
 #### To run with JSON file from the terminal:
@@ -133,7 +135,7 @@ dynabench -input_file=input_file.dcd --commands=all_analysis,all_plots --dcd_pdb
 dynabench --table_json=table_params.json --plot_json=plot_params.json
 ```
 
-#### For more commands to run from terminal: 
+#### For more options to run from terminal: 
 ```
 dynabench -h
 ```

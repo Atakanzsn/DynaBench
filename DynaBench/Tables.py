@@ -13,6 +13,8 @@ import DynaBench.handling as hp
 import DynaBench.pdb_tool_modified as ptm
 import random
 import json
+import subprocess
+import shutil
 
 freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
@@ -49,6 +51,7 @@ class dynabench:
         self.stride = stride
         self.rmsd_data= None
         self.get_all_hph = None
+        self.foldx_path = None
 
         if job_name is None:
             file_name = inp_file.split('.')[0]
@@ -134,7 +137,8 @@ class dynabench:
                 'rmsd_data':self.rmsd_data
                 },
             'ResidueBased':{
-                'Run': self.rb_flag
+                'Run': self.rb_flag,
+                'FoldX_path': self.foldx_path
             },
             'InteractionBased': { 
                 'Run': self.ib_flag,
@@ -202,13 +206,14 @@ class dynabench:
         c.quality_tbls_overtime()
         c.quality_tbls_overres()
 
-    def run_res_based(self):
+    def run_res_based(self, foldx_path):
         """ The function to run Residue Based analyses in one line. Defines Residue Based class and runs the functions in it.
         
         Return: None
         """
+        self.foldx_path = foldx_path
         self.rb_flag = True
-        c = self.ResidueBased(self.pdb_file, self.target_path, timestep= self.timestep, timeunit = self.time_unit, time_type=self.time_Type, stride=self.stride)
+        c = self.ResidueBased(self.pdb_file, self.target_path, timestep= self.timestep, timeunit = self.time_unit, time_type=self.time_Type, stride=self.stride, job_path=self.job_path, foldx_path=foldx_path)
         c.res_based_tbl()
         c.interface_table()
 
@@ -390,7 +395,7 @@ class dynabench:
             file.close()
 
     class ResidueBased:
-        def __init__(self, pdb_path, target_path, time_type, timestep, timeunit, stride):
+        def __init__(self, pdb_path, target_path, time_type, timestep, timeunit, stride, job_path, foldx_path):
             """ A class to perform Residue Based analyses such as core-rim, and  biophysical type classifications; Van der Waals, electrostatic, desolvation, and hydrogen bond energies either between same-chain or different chain residues. Also prints the interface class that residues had with the highest percentage for all simulation time. Initially calculates rASA values and residue energies.
             
             Keyword arguments:
@@ -402,6 +407,7 @@ class dynabench:
             self.timestep = timestep
             self.timeunit = timeunit
             self.stride = stride
+            self.foldx_path=foldx_path
 
             if self.time_type and 'Time' in self.time_type:
                 if self.timeunit.lower() == 'ns' or self.timeunit.lower() == 'nanosecond':
@@ -411,10 +417,8 @@ class dynabench:
 
             self.target_path = target_path
             self.header = [f"{t}", "Chain", "Residue", "Residue Number", "rASAc", "rASAm", "delta rASA",
-                           "Interface Label", "Residue Biophysical Type", "InterS vdwatt", "InterS vdwrep",
-                           "InterS electr", "InterS desolvP", "InterS desolvH", "InterS HB", "InterS Total",
-                           "InterD vdwatt", "InterD vdwrep",
-                           "InterD electr", "InterD desolvP", "InterD desolvH", "InterD HB", "InterD Total\n"]
+                           "Interface Label", "Residue Biophysical Type", "Backbone Hbond Energy","Sidechain Hbond Energy", "Van der Waals Energy", "Electrostatic Energy",
+                           "Total Residue Energy","\n"]
 
             self.rasam_array = freesasa.structureArray(pdb_path,
                                                        {'separate-chains': True,
@@ -423,7 +427,7 @@ class dynabench:
                                                        {'separate-chains': False,
                                                         'separate-models': True})  # rasm, len=201
 
-            self.energies = self._res_en(pdb_path)
+            self.energies = self._res_en(pdb_path, job_path, foldx_path)
 
         #
         # Private Methods
@@ -481,7 +485,7 @@ class dynabench:
             return res_dict[res_type]
 
         @staticmethod
-        def _res_en(inp_file):
+        def _res_en(inp_file, job_path, foldx_path):
             """ Calculates the residue energies (Van der Waals, electrostatic, desolvation, and hydrogen bond for both same chain and different chain interactions) by running EvoEF1 for each frame.
             
             Keyword arguments:
@@ -491,9 +495,7 @@ class dynabench:
             
 
             class ResEnergy:
-                def __init__(self, name, vdwatts=None, vdwreps=None, elecs=None, HBs=0, vdwattd=None, vdwrepd=None,
-                             elecd=None, desPs=None, desHs=None, desPd=None, desHd=None,
-                             HBd=0):
+                def __init__(self, name, resnum, chain, total, bb_hbond, sc_hbond, vdw, elec):
                     """A class to collect energy values of a residue. This class is defined for each residue. The energy values that ends with the letter 's' describes same-chain interaction, while letter 'd' stands for different chain interations.
                     
                     Keyword arguments:
@@ -507,140 +509,82 @@ class dynabench:
                     Return: None
                     """
                     
-                    self.totals = None
-                    self.totald = None
-                    self.resname = name[-3:]
-                    self.chainid = name[0]
-                    self.resid = ""
-                    for i in name:
-                        if i.isnumeric():
-                            self.resid += i
-                    if self.resname == "HSD":
-                        self.resname = "HIS"
+                    self.res_name = name
+                    self.resnum= resnum
+                    self.chain = chain
+                    self.total = total
+                    self.bb_hbond = bb_hbond
+                    self.sc_hbond = sc_hbond
+                    self.vdw = vdw
+                    self.elec = elec
 
-                    self.vdwatts = vdwatts
-                    self.vdwreps = vdwreps
-                    self.elecs = elecs
-                    self.desPs = desPs
-                    self.desHs = desHs
-                    self.HBs = HBs
-
-                    self.vdwattd = vdwattd
-                    self.vdwrepd = vdwrepd
-                    self.elecd = elecd
-                    self.desPd = desPd
-                    self.desHd = desHd
-                    self.HBd = HBd
-
-                def get_total(self):
-                    """Function to calculate total energies for either same or different chain interactions.
-                    
-                    Return: None
-                    """
-                    
-                    self.totals = self.vdwatts + self.vdwreps + self.elecs + self.HBs
-                    self.totald = self.vdwattd + self.vdwrepd + self.elecd + self.HBd
+                    self.hbond = self.bb_hbond + self.sc_hbond
 
             result = dict()
 
-            import secrets
-            import string
+            #run foldx
 
-            def generate_random_filename(length=10, extension=''):
-                random_string = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(length))
-                if extension:
-                    random_string += f".{extension}"
-                return random_string
+            inp_path = os.path.abspath(inp_file)
+
+            current = os.getcwd()
+
+            for file in os.listdir(foldx_path):
+                if 'foldx' in file:
+                    foldx_exe_path = os.path.abspath(os.path.join(foldx_path, file))
+
+            if not os.path.exists(os.path.join(job_path, 'models')):
+                os.mkdir(os.path.join(job_path, 'models'))
             
-            fname = generate_random_filename(extension='txt')
+            os.mkdir(os.path.join(job_path, 'foldx_outputs'))
 
-            import DynaBench
-            c = os.getcwd()
-            p = DynaBench.__file__[:-12]
-            tp = os.path.join(p, fname)
-            handle = open(tp, "w+", encoding="utf-8")
-            os.chdir(f"{p}/EvoEF")
 
-            file2 = open(inp_file, "r+", encoding="utf-8")
-            model_num = 0
+            models_path = os.path.join(job_path, 'models')
 
-            for row in file2:
-                if row.startswith("ATOM"):
-                    handle.write(row)
+            output_path = os.path.join(job_path, 'foldx_outputs')
+            
+            os.chdir(models_path)
+            
+            os.system(f"pdb_splitmodel {inp_path}")
 
-                if row.startswith("ENDMDL") or row.startswith('END'):
-                    handle.write("TER")
-                    handle.close()
+            os.chdir(current)
 
-                    if model_num not in result.keys():
-                        result[model_num] = dict()
-                    from sys import platform
-                    if platform=='win32':
-                        x_complex = os.popen(f"EvoEF --command=ComputeResiEnergy --pdb=../{fname}").read()
-                    else:
-                        x_complex = os.popen(f"./EvoEF --command=ComputeResiEnergy --pdb=../{fname}").read()
+            with open(os.path.join(job_path, 'pdb_list.out'), 'w+') as fh:
+                for file in os.listdir(models_path):
+                    fh.write(f"{file}\n")
 
-                    handle = open(tp, "w+", encoding="utf-8")
-                    handle.truncate(0)
+            subprocess.run(f"{foldx_exe_path} --command=SequenceDetail --output-dir={output_path} --pdb-dir={models_path} --pdb-list={os.path.join(job_path,'pdb_list.out')}", stdout=subprocess.DEVNULL)
 
-                    for row in x_complex.split("\n"):
-                        row = row.rstrip("\n")
+            os.remove(os.path.join(job_path, 'pdb_list.out'))
 
-                        if not row.startswith("residue") and not row.startswith("inter") and not row.startswith(
-                                "Total"):
+            #read outputs
+
+            for file in os.listdir(output_path):
+                frame = int(file.split('.')[0].split('_')[-1]) - 1
+                if frame not in result.keys():
+                    result[frame] = dict()
+                with open(os.path.join(output_path, file), 'r+') as fh:
+                    for r in fh:
+                        r = r.rstrip("\n")
+                        splitted = r.split("\t")
+
+                        try:
+                            resname = splitted[1]
+                            chain = splitted[2]
+                            res_num = splitted[3]
+
+                            total= float(splitted[8])
+                            bb_hbond = float(splitted[9])
+                            sc_hbond=float(splitted[10])
+                            vdw = float(splitted[11])
+                            elec = float(splitted[12])
+
+                            res= ResEnergy(resname, res_num, chain, total, bb_hbond, sc_hbond, vdw, elec)
+
+                            result[frame][f"{res.chain}{res.resnum}{res.res_name}"] = res
+                        
+                        except IndexError:
                             continue
 
-                        else:
-                            if row.startswith("residue"):
-                                name = row.split(" ")[1]
-                                res_obj = ResEnergy(name)
-                                name = res_obj.chainid + res_obj.resid + res_obj.resname
-
-                            if row.startswith("interS_vdwatt"):
-                                res_obj.vdwatts = float(row.split(" ")[-1])
-
-                            if row.startswith("interS_vdwrep"):
-                                res_obj.vdwreps = float(row.split(" ")[-1])
-
-                            if row.startswith("interS_electr"):
-                                res_obj.elecs = float(row.split(" ")[-1])
-
-                            if row.startswith("interS_deslvP"):
-                                res_obj.desPs = float(row.split(" ")[-1])
-
-                            if row.startswith("interS_deslvH"):
-                                res_obj.desHs = float(row.split(" ")[-1])
-
-                            if "interS_hb" in row:
-                                res_obj.HBs += float(row.split(" ")[-1])
-
-                            if row.startswith("interD_vdwatt "):
-                                res_obj.vdwattd = float(row.split(" ")[-1])
-
-                            if row.startswith("interD_vdwrep"):
-                                res_obj.vdwrepd = float(row.split(" ")[-1])
-
-                            if row.startswith("interD_electr"):
-                                res_obj.elecd = float(row.split(" ")[-1])
-
-                            if row.startswith("interD_deslvP"):
-                                res_obj.desPd = float(row.split(" ")[-1])
-
-                            if row.startswith("interD_deslvH"):
-                                res_obj.desHd = float(row.split(" ")[-1])
-
-                            if "interD_hb" in row:
-                                res_obj.HBd += float(row.split(" ")[-1])
-
-                            if row.startswith("Total"):
-                                res_obj.get_total()
-                                result[model_num][name] = res_obj
-
-                    model_num += 1
-            os.chdir(c)
-            file2.close()
-            handle.close()
-            os.remove(tp)
             return result
 
         #
@@ -695,13 +639,12 @@ class dynabench:
                             t = frame * self.stride * float(self.timestep)
                         else:
                             t = frame
-                        row = f"{t},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}," \
-                              f"{f'{delta_ras:.03f}'},{label},{biophy_class},{f'{obj.vdwatts:.03f}'},{f'{obj.vdwreps:.03f}'}," \
-                              f"{f'{obj.elecs:.03f}'},{f'{obj.desPs:.03f}'},{f'{obj.desHs:.03f}'},{f'{obj.HBs:.03f}'},{f'{obj.totals:.03f}'},{f'{obj.vdwattd:.03f}'},{f'{obj.vdwrepd:.03f}'}," \
-                              f"{f'{obj.elecd:.03f}'},{f'{obj.desPd:.03f}'},{f'{obj.desHd:.03f}'},{f'{obj.HBd:.03f}'},{f'{obj.totald:.03f}'}\n"
+                        row = f"{t},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
 
                         file.write(row)
             file.close()
+
+
 
         def interface_table(self):
             """Reads residue based csv file and writes the highest precentage of interface label of whole simulation for each residue. 

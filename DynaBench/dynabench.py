@@ -44,11 +44,12 @@ parser = argparse.ArgumentParser()
 
 #required?
 parser.add_argument('-ip', '--input_file', type=str, help="Input File in .dcd or .pfb formats. If .dcd, pelase provide .pdb file with '--dcd_pdb' command.")
-parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondBar', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
+parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
 #tables
+parser.add_argument('--foldx_path', type=str)
 parser.add_argument('--time_as', type=str, help="'Frame' or 'Time'. If Time, you should provide time unit with --timeunit command.")
 parser.add_argument('--timestep', type=str, help="Timestep value of simulation.")
 parser.add_argument('--timeunit', type=str, help="Nanosecond or ns is acceptable for now.")
@@ -118,8 +119,8 @@ if args.plot_json:
         plot_commands.append('PlotRG')
     if plot_data['PlotRMSF']['Run']:
         plot_commands.append('PlotRMSF')
-    if plot_data['PlotBondBar']['Run']:
-        plot_commands.append('PlotBondBar')
+    if plot_data['PlotPairwiseFreq']['Run']:
+        plot_commands.append('PlotPairwiseFreq')
     if plot_data['PlotBiophys']['Run']:
         plot_commands.append('PlotBiophys')
     if plot_data['PlotResEne']['Run']:
@@ -130,7 +131,7 @@ else:
     p_json = False
     if args.commands:
         if 'all_plots' in commands:
-            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBondBar', 'PlotBiophys', 'PlotResEne']
+            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotResEne']
         else:
             plot_commands = [x for x in commands if 'plot' in x.lower()]
     else:
@@ -157,6 +158,7 @@ def main():
             time_as = table_data['show_time_as']
             timestep = table_data['timestep']
             timeunit = table_data['timeunit']
+            
 
         else:
             inp_file = args.input_file
@@ -207,10 +209,15 @@ def main():
             print_stars(1)
             print("\n")
         if 'ResidueBased' in table_commands:
+
+            if a_json_:
+                foldx_path = table_data['ResidueBased']['FoldX_path']
+            else:
+                foldx_path = args.foldx_path
             
             print('Running Residue Based Analysis...\n')
             start_time = datetime.now()
-            mol.run_res_based()
+            mol.run_res_based(foldx_path)
             end_time = datetime.now()
             print(f"Residue Based Analysis has run successfully!\nRunning duration: {end_time - start_time}\n")
             print_stars(1)
@@ -315,11 +322,11 @@ def main():
             print_stars(1)
             print("\n")
 
-        if 'PlotBondBar' in plot_commands:
+        if 'PlotPairwiseFreq' in plot_commands:
 
             if p_json:
-                bondfreq_tpath = plot_data['PlotBondBar']['bar_table_path']
-                bondfreq_palette = plot_data['PlotBondBar']['bar_palette']
+                bondfreq_tpath = plot_data['PlotPairwiseFreq']['bar_table_path']
+                bondfreq_palette = plot_data['PlotPairwiseFreq']['bar_palette']
 
                 if bondfreq_palette:
                     draw._bar_palette = bondfreq_palette
@@ -327,7 +334,7 @@ def main():
             else:
                 bondfreq_tpath = args.bondfreq_tpath
 
-            draw.plot_bond_freq_barplot(path=bondfreq_tpath)
+            draw.plot_pairwise_freq(path=bondfreq_tpath)
             print('Bond Frequencies Bar Plot is done!\n')
             print_stars(1)
             print("\n")

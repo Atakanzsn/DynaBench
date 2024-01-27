@@ -95,7 +95,7 @@ class Plotter:
 
         ax.set_title(f"RMSD Analysis")
         ax.legend()
-        fig.savefig(os.path.join(self.target_path, f'RMSD Analysis.png'), dpi=300)
+        fig.savefig(os.path.join(self.target_path, f'RMSD_Analysis.png'), dpi=300)
 
     def plot_rg(self, path=None):
         """A function to perform line plot RG visualization for each chain and the overall complex. 'Reads QualityControl-overtime.csv' file.
@@ -129,7 +129,7 @@ class Plotter:
 
         ax.set_title(f"RG Analysis")
         ax.legend()
-        fig.savefig(os.path.join(self.target_path, f'RG Analysis.png'), dpi=300)
+        fig.savefig(os.path.join(self.target_path, f'RG_Analysis.png'), dpi=300)
 
     def plot_rmsf(self, rmsf_path=None, intf_path=None):
         """A function to perform line plot RMSF visualization for each chain, with interface residues marked. Reads 'interface_label_perc.csv' and 'QualityControl-overres' files.
@@ -265,10 +265,10 @@ class Plotter:
         plt.ylabel("Percentage of Total Residue Types")
         plt.xlabel("Interface Label")
 
-        plt.title("Biophysical Classification Counts of Residues'")
+        plt.title("Biophysical Classification Counts of Residues")
         fig.savefig(os.path.join(self.target_path, f'Biophys_count.png'), dpi=300)
 
-    def plot_bond_freq_barplot(self, path=None):
+    def plot_pairwise_freq(self, path=None):
         """A function to perform barplot visualization of interaction frequency in simulation of residue pairs with locations (side chain or backbone) of atoms that participated in interaction. Reads 'int_based_table.csv' file.
         
         Return: None
@@ -292,7 +292,7 @@ class Plotter:
         self._bar_path = path
 
         if not self._bar_palette:
-            self._bar_palette = [['#b30000', '#fc8e5a',  '#fee8c9'], ['#133345', '#68a9cf', '#c3dceb'], ['#3a1a63', '#807dba', '#efedf5']]
+            self._bar_palette = [['#fee8c9','#fc8e5a','#b30000'], ['#c3dceb', '#68a9cf','#133345' ], ['#efedf5', '#807dba', '#3a1a63']]
 
         
         backbones = ["HN", "N", "CA", "HA", "C", "O"]
@@ -376,7 +376,7 @@ class Plotter:
 
             plt.title(f"General {x.strip('bond').capitalize()}-bond Percentage to Simulation Time", fontweight='bold', size=20)
 
-            plt.savefig(os.path.join(self.target_path, f"Pairwise_{x}-percentage.png"), dpi=300, bbox_inches='tight', format="png")                  
+            plt.savefig(os.path.join(self.target_path, f"Pairwise_{x}-frequency.png"), dpi=300, bbox_inches='tight', format="png")                  
 
     def plot_int_energy(self, thereshold=50.0, intf_path=None, res_path=None):
         """A function to perform boxplot visualization of interaction energy variation of residues that has constant interface label at least 50%-by default- of all simulation. Reads 'interface_label_perc' and 'residue_based_tbl.csv' files.
@@ -396,7 +396,7 @@ class Plotter:
 
         else:
             df = pd.read_csv(os.path.join(self.table_path, "interface_label_perc.csv"))
-            energy_df = pd.read_csv(os.path.join(self.table_path, "residue_based_tbl.csv"), usecols=["Chain", "Residue", "Residue Number", "InterD Total"])
+            energy_df = pd.read_csv(os.path.join(self.table_path, "residue_based_tbl.csv"), usecols=["Chain", "Residue", "Residue Number", "Total Residue Energy"])
 
         self._ene = True
         self._ene_thr = thereshold
@@ -408,7 +408,7 @@ class Plotter:
 
         energy_df["Residue"] = [a + str(b) for a, b in zip(energy_df["Residue"], energy_df["Residue Number"])]
         g = energy_df.groupby(["Chain", "Residue"])
-        n_df = pd.DataFrame(columns=["Chain", "Residue", "InterD Total"])
+        n_df = pd.DataFrame(columns=["Chain", "Residue", "Total Residue Energy"])
         my_palette = dict()
         ch_num = 1
         for index, row in int_df.iterrows():
@@ -420,7 +420,7 @@ class Plotter:
             n_df = pd.concat([n_df, data])
 
         fig, ax = plt.subplots(figsize=(15, 8))
-        sns.boxplot(data=n_df.sort_values(["Chain", "Residue Number"]), x="Residue", y="InterD Total", hue="Chain",
+        sns.boxplot(data=n_df.sort_values(["Chain", "Residue Number"]), x="Residue", y="Total Residue Energy", hue="Chain",
                     palette=my_palette)
         plt.xticks(rotation=90)
         plt.title("Interface Residue Based Energy Evulation for Complete Simulation")
@@ -451,15 +451,7 @@ class Plotter:
                 'biophys_table_path':self._biophys_path,
                 'biophys_palette': self._biophys_palette
                 },
-            'PlotBondPie': {
-                'Run': self._pie,
-                'pie_table_path':self._pie_path,
-                'pie_palette': self._pie_palette,
-                'pie_hbond_th': self._pie_hbond,
-                'pie_hph_th': self._pie_hph,
-                'pie_ionic_th': self._pie_ionic
-                },
-            'PlotBondBar': {
+            'PlotPairwiseFreq': {
                 'Run': self._bar,
                 'bar_table_path':self._bar_path,
                 'bar_palette': self._bar_palette
