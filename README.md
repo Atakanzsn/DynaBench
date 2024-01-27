@@ -9,6 +9,7 @@ The Dynabench package is an analysis pipeline for molecular dynamic simulations.
 ### DynaBench Architecture
 DynaBench calls several python packages and custom scripts to run Quality Control, Residue Based, and Interaction Based analysis. According to the results of the analysis, by merging some results, visualizations are made. 
 
+
 ![DynaBench (3)](https://github.com/Atakanzsn/DynaBench/assets/63709928/d71883de-b440-44a7-ad0f-defb29d7eeee)
 
 
@@ -97,16 +98,20 @@ draw.plot_rg(path=None)
 #RMSF plot can be plotted after residue-based analysis due to marking of interface residues on the plot.
 
 #Residue Based analysis and visualization
+
 mol.run_res_based('foldx_folder_path')
+
 
 draw.plot_rmsf(rmsf_path=None, intf_path=None)
 draw.plot_int_energy(thereshold=50.0, res_path=None, intf_path=None)
 draw.plot_biophys(path=None)
 
 #Interaction Based analysis and visualization
+
 mol.run_inter_based('foldx_folder_path')
 
 draw.plot_pairwise_freq(path=None)
+
 
 #Get .json files for analysis and plots.
 mol._get_params_()
