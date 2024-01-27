@@ -703,6 +703,8 @@ class dynabench:
                         file.write(row)
             file.close()
 
+
+
         def interface_table(self):
             """Reads residue based csv file and writes the highest precentage of interface label of whole simulation for each residue. 
             
