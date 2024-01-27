@@ -97,7 +97,7 @@ draw.plot_rg(path=None)
 #RMSF plot can be plotted after residue-based analysis due to marking of interface residues on the plot.
 
 #Residue Based analysis and visualization
-mol.run_res_based()
+mol.run_res_based('foldx_folder_path')
 
 draw.plot_rmsf(rmsf_path=None, intf_path=None)
 draw.plot_int_energy(thereshold=50.0, res_path=None, intf_path=None)
@@ -106,7 +106,7 @@ draw.plot_biophys(path=None)
 #Interaction Based analysis and visualization
 mol.run_inter_based('foldx_folder_path')
 
-draw.plot_bond_freq_barplot(path=None)
+draw.plot_pairwise_freq(path=None)
 
 #Get .json files for analysis and plots.
 mol._get_params_()
