@@ -1,5 +1,3 @@
-# UNDER DEVELOPMENT. USE MAIN BRANCH.
-
 # DynaBench
 The Dynabench package is an analysis pipeline for molecular dynamic simulations. The package runs analysis in three parts:
 * **Quality Control:** RMSD, RG, and RMSF analysis.
