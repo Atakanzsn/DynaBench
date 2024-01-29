@@ -40,9 +40,6 @@ DynaBench output files are stored in two folders: *tables* and *figures*. Analys
 * freesasa
 
 ### Installation
-#### Note for Windows users:
-  >**DynaBench uses EvoEF for energy calculations. Before installing the package, please install the [EvoEF](https://github.com/tommyhuangthu/EvoEF) by yourself and configure to your laptop. After installing the EvoeF, you can follow the installation steps.**
->**Windows users also may need to download the [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and, [C++ compiler](https://visualstudio.microsoft.com/visual-cpp-build-tools/).**
 
 **We recommend you use [git](https://git-scm.com/downloads) clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
 
