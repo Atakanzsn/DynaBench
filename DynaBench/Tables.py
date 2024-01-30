@@ -185,7 +185,7 @@ class dynabench:
             for ts in u.trajectory[::stride]:
                 W.write(u.atoms)
 
-        ptm.chains(output_file, ['V', 'S'])
+        ptm.main2(output_file, ['V', 'S'])
         #os.system(f'python pdb_tool_modified.py -V,S {output_file} > {name}_chained.pdb')
 
         return name + "_chained.pdb"

@@ -1,5 +1,0 @@
-networkx
-numpy
-openmm
-pandas
-pdbfixer
