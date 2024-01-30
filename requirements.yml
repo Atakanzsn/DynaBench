@@ -18,3 +18,4 @@ dependencies:
   - pip:
      - pdb-tools
      - freesasa
+     - nglview

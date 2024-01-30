@@ -38,6 +38,7 @@ DynaBench output files are stored in two folders: *tables* and *figures*. Analys
 * matplotlib
 * pdb-tools
 * freesasa
+* nglview
 
 ### Installation
 

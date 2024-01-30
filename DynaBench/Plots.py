@@ -47,7 +47,7 @@ class Plotter:
 
         if job_name is None:
             for file in os.listdir(os.getcwd()):
-                if 'db' in file:
+                if '_db' in file:
                     self.job_path = os.path.join(os.getcwd(), file)
         else:
             self.job_path = os.path.join(os.getcwd(), job_name)
