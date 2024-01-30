@@ -120,9 +120,9 @@ Complete run (Quality control, Residue-Based, and Interaction-Based analysis wit
 ```
 dynabench --input_file=input_file.pdb --commands=all_analysis,all_plots --foldx_path=foldx_folder_path
 ```
-#### With .dcd input
+#### With .dcd input, stride value 20
 ```
-dynabench --input_file=trajectory.dcd --commands=all_analysis,all_plots --dcd_pdb=topology.pdb --foldx_path=foldx_folder_path
+dynabench --input_file=trajectory.dcd --commands=all_analysis,all_plots --dcd_pdb=topology.pdb --foldx_path=foldx_folder_path --stide=20
 ```
 
 #### To run with JSON file from the terminal:
