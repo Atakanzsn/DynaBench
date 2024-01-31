@@ -169,12 +169,10 @@ class Plotter:
 
         groups = df1.groupby(["Molecule"])
         
-
-        fig, axes = plt.subplots(1, len(groups), sharex="all", figsize=(10, 6), sharey=True)
         try:
+            fig, axes = plt.subplots(1, len(groups), sharex="all", figsize=(10, 6), sharey=True)
             for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
                 data = groups.get_group(x)
-
                 if intf:
                     int_data = g2.get_group(x)
                     markers = [int(x[3:]) for x in int_data["Residue"]]
@@ -195,12 +193,13 @@ class Plotter:
             if intf:
                 plt.legend()
             fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
-            
-        except:
-            for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
 
+        except:
+            fig, axes = plt.subplots(1, len(groups), sharex="all", figsize=(10, 6), sharey=True)
+            for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
                 data = groups.get_group(x)
-                ax.plot(data["Residue Number"], data["RMSF"], color=self.chain_colors[ind])
+                ax.plot(data["Residue Number"], data["RMSF"],
+                        color=self.chain_colors[ind])
 
                 ax.set_xlabel("Residue Number")
                 ax.set_ylabel(f'RMSF (Å)')
