@@ -46,6 +46,7 @@ class Plotter:
         sns.set_style('whitegrid')
 
         if job_name is None:
+            #job_name = input('Plase provide job name:\n')
             for file in os.listdir(os.getcwd()):
                 if '_db' in file:
                     self.job_path = os.path.join(os.getcwd(), file)
@@ -145,7 +146,7 @@ class Plotter:
 
         if intf_path:
             self.handler.test_inp_path(intf_path)
-            df1 = pd.read_csv(intf_path)
+            df = pd.read_csv(intf_path)
 
         else:
             df1 = pd.read_csv(os.path.join(self.table_path, "QualityControl-overres.csv"))
@@ -170,28 +171,47 @@ class Plotter:
         
 
         fig, axes = plt.subplots(1, len(groups), sharex="all", figsize=(10, 6), sharey=True)
-        for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
-            data = groups.get_group(x)
-            if intf:
-                int_data = g2.get_group(x)
-                markers = [int(x[3:]) for x in int_data["Residue"]]
-                ax.plot(data["Residue Number"], data["RMSF"], '-o', markevery=markers, markersize=3.5,
-                        color=self.chain_colors[ind])
-                ax.plot(data["Residue Number"], data["RMSF"], 'o', markevery=markers,
-                        label='Interface Residues', markersize=3.5, color="red")
-            else:
-                ax.plot(data["Residue Number"], data["RMSF"],
-                        color=self.chain_colors[ind])
+        try:
+            for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
+                data = groups.get_group(x)
 
-            ax.set_xlabel("Residue Number")
-            ax.set_ylabel(f'RMSF (Å)')
-            ax.set_title(f"Chain {x}", fontsize=16)
-            ax.xaxis.label.set_size(12)
-            ax.yaxis.label.set_size(12)
-        plt.suptitle("RMSF Analysis", fontsize=18)
-        if intf:
-            plt.legend()
-        fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
+                if intf:
+                    int_data = g2.get_group(x)
+                    markers = [int(x[3:]) for x in int_data["Residue"]]
+                    ax.plot(data["Residue Number"], data["RMSF"], '-o', markevery=markers, markersize=3.5,
+                            color=self.chain_colors[ind])
+                    ax.plot(data["Residue Number"], data["RMSF"], 'o', markevery=markers,
+                            label='Interface Residues', markersize=3.5, color="red")
+                else:
+                    ax.plot(data["Residue Number"], data["RMSF"],
+                            color=self.chain_colors[ind])
+
+                ax.set_xlabel("Residue Number")
+                ax.set_ylabel(f'RMSF (Å)')
+                ax.set_title(f"Chain {x}", fontsize=16)
+                ax.xaxis.label.set_size(12)
+                ax.yaxis.label.set_size(12)
+            plt.suptitle("RMSF Analysis", fontsize=18)
+            if intf:
+                plt.legend()
+            fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
+            
+        except:
+            for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
+
+                data = groups.get_group(x)
+                ax.plot(data["Residue Number"], data["RMSF"], color=self.chain_colors[ind])
+
+                ax.set_xlabel("Residue Number")
+                ax.set_ylabel(f'RMSF (Å)')
+                ax.set_title(f"Chain {x}", fontsize=16)
+                ax.xaxis.label.set_size(12)
+                ax.yaxis.label.set_size(12)
+            plt.suptitle("RMSF Analysis", fontsize=18)
+            if intf:
+                plt.legend()
+            fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
+
 
     def plot_biophys(self, path=None):
         """A function to perform barplot core-rim and biophysical classification visualization. Reads 'inetrface_label.csv' file.
