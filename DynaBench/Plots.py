@@ -138,11 +138,6 @@ class Plotter:
         Return: None
         """
 
-        #self.handler.test_intf_path(os.path.join(self.table_path, "interface_label_perc.csv"))
-
-        def reindex(val):
-            pass
-
         if rmsf_path:
             self.handler.test_inp_path(rmsf_path)
             df1 = pd.read_csv(rmsf_path)
@@ -180,9 +175,13 @@ class Plotter:
         def get_jumpseq(data):
             sequence = list()
             for index,row in data.iterrows():
-                while len(sequence) != row['Residue Number'] - 1:
+                resnum = row['Residue Number']
+                if resnum == 0:
+                     resnum = 1
+
+                while len(sequence) < resnum - 1:
                     sequence.append('.')
-                sequence.append(row['Residue Number'])
+                sequence.append(resnum)
             return sequence
         
         def get_jumped_markers(data, seq_list, jumped_data):
@@ -208,6 +207,8 @@ class Plotter:
                 colss = []
                 idxs = []
 
+                overall_list = []
+
                 for idx,res in enumerate(sequence):
                     if res != ".":
 
@@ -228,31 +229,27 @@ class Plotter:
                         if complete_end or part_end:
                             if intf:
                                 int_data = g2.get_group(x)
-                                
                                 markers = get_jumped_markers(int_data, sequence, jumped_data)
-                                print(len(jumped_data['Residue Number']))
-                                for k in range(2):
-                                    for i in markers:
-                                        if i > np.max(jumped_data['Residue Number']) or i < np.min(jumped_data['Residue Number']):
-                                            markers.remove(i)
-
-
-                                #print(jumped_data['Residue Number'])
-
-                                ax.plot(jumped_data["Residue Number"], jumped_data["RMSF"], '-o', markevery=markers, markersize=3.5,
-                                    color=self.chain_colors[ind], linewidth=3)
-                                ax.plot(jumped_data["Residue Number"], jumped_data["RMSF"], 'o', markevery=markers,
-                                    label='Interface Residues', markersize=3.5, color="red", linewidth=3)
-
+                                overall_list.append([jumped_data, markers])
 
                             else:
-                                ax.plot(jumped_data["Residue Number"], jumped_data["RMSF"],
-                                        color=self.chain_colors[ind], linewidth=3)
+                                overall_list.append([jumped_data])
 
                             jumped_data = pd.DataFrame(columns=['Molecule', 'Residue Number', 'RMSF']) 
 
                     else:
                         idxs.append(idx + 1)
+
+                for el in overall_list:
+                    if len(el) > 1:
+                        ax.plot(el[0]["Residue Number"], el[0]["RMSF"], '-o', markevery=el[1], markersize=3.5,
+                            color=self.chain_colors[ind], linewidth=3)
+                        ax.plot(el[0]["Residue Number"], el[0]["RMSF"], 'o', markevery=el[1],
+                            label='Interface Residues', markersize=3.5, color="red", linewidth=3)
+                    else:
+                        data = el[0]
+                        ax.plot(data["Residue Number"], data["RMSF"],
+                                color=self.chain_colors[ind], linewidth=3)
 
                 for c in colss:
                     ax.axvspan(np.min(c), np.max(c), facecolor="black", hatch="///", edgecolor="white", linewidth=0.0, alpha=0.45)
