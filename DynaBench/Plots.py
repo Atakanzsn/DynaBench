@@ -140,6 +140,9 @@ class Plotter:
 
         #self.handler.test_intf_path(os.path.join(self.table_path, "interface_label_perc.csv"))
 
+        def reindex(val):
+            pass
+
         if rmsf_path:
             self.handler.test_inp_path(rmsf_path)
             df1 = pd.read_csv(rmsf_path)
@@ -162,54 +165,123 @@ class Plotter:
 
         if intf:
 
-            int_df = df[(df["Interface Label"] == 4) | (df["Interface Label"] == 2) | (df["Interface Label"] == 3) & (
-                    df["Percentage"] >= 50)]
+            int_df = df[(df["Interface Label"] == 4) | (df["Interface Label"] == 2) | (df["Interface Label"] == 3)]
+
+            int_df = int_df[int_df["Percentage"] >= 50]
             
             g2 = int_df.groupby(["Chain"])
 
+        max_y = np.max(df1['RMSF'])
+
         groups = df1.groupby(["Molecule"])
         
-        try:
-            fig, axes = plt.subplots(1, len(groups), sharex="all", figsize=(10, 6), sharey=True)
-            for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
-                data = groups.get_group(x)
-                if intf:
+        fig, axes = plt.subplots(1, len(groups), figsize=(10, 6), sharey=True)
+        
+        def get_jumpseq(data):
+            sequence = list()
+            for index,row in data.iterrows():
+                while len(sequence) != row['Residue Number'] - 1:
+                    sequence.append('.')
+                sequence.append(row['Residue Number'])
+            return sequence
+        
+        def get_jumped_markers(data, seq_list, jumped_data):
+            markers = list() #interface data alıyor
+            for x in data['Residue']:
+                res_num = int(x[3:])
+                try:
+                    ix = jumped_data[jumped_data['Residue Number'] == res_num].index[0]
+                except: continue
+                markers.append(ix)
+
+            return markers
+
+
+        for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
+            data = groups.get_group(x)
+            if data.iloc[0]['Residue Number'] != 1 or data.iloc[-1]['Residue Number'] != len(data): #check the jump
+                sequence = get_jumpseq(data)
+
+                ax.set_xlim([1,len(sequence)])
+
+                jumped_data = pd.DataFrame(columns=['Molecule', 'Residue Number', 'RMSF'])
+                colss = []
+                idxs = []
+
+                for idx,res in enumerate(sequence):
+                    if res != ".":
+
+                        if len(idxs) > 1:
+                            colss.append(idxs)
+                            idxs = []
+
+                        jumped_data.loc[len(jumped_data)] = data[data['Residue Number']== res].values[0]
+                        complete_end=False
+                        part_end = False
+
+                        try:
+                            if sequence[idx+1] == '.':
+                                part_end = True
+                        except IndexError:
+                            complete_end=True
+
+                        if complete_end or part_end:
+                            if intf:
+                                int_data = g2.get_group(x)
+                                
+                                markers = get_jumped_markers(int_data, sequence, jumped_data)
+                                print(len(jumped_data['Residue Number']))
+                                for k in range(2):
+                                    for i in markers:
+                                        if i > np.max(jumped_data['Residue Number']) or i < np.min(jumped_data['Residue Number']):
+                                            markers.remove(i)
+
+
+                                #print(jumped_data['Residue Number'])
+
+                                ax.plot(jumped_data["Residue Number"], jumped_data["RMSF"], '-o', markevery=markers, markersize=3.5,
+                                    color=self.chain_colors[ind], linewidth=3)
+                                ax.plot(jumped_data["Residue Number"], jumped_data["RMSF"], 'o', markevery=markers,
+                                    label='Interface Residues', markersize=3.5, color="red", linewidth=3)
+
+
+                            else:
+                                ax.plot(jumped_data["Residue Number"], jumped_data["RMSF"],
+                                        color=self.chain_colors[ind], linewidth=3)
+
+                            jumped_data = pd.DataFrame(columns=['Molecule', 'Residue Number', 'RMSF']) 
+
+                    else:
+                        idxs.append(idx + 1)
+
+                for c in colss:
+                    ax.axvspan(np.min(c), np.max(c), facecolor="black", hatch="///", edgecolor="white", linewidth=0.0, alpha=0.45)
+
+
+            else:
+                if intf: #if no jmp, markers, intf yes
                     int_data = g2.get_group(x)
-                    markers = [int(x[3:]) for x in int_data["Residue"]]
+                    markers = [int(x[3:]) -1 for x in int_data["Residue"]]
+                    
+
                     ax.plot(data["Residue Number"], data["RMSF"], '-o', markevery=markers, markersize=3.5,
                             color=self.chain_colors[ind])
                     ax.plot(data["Residue Number"], data["RMSF"], 'o', markevery=markers,
-                            label='Interface Residues', markersize=3.5, color="red")
+                            label='Interface Residues', markersize=3.5, color="red")  #jump yok intf var
+                    
                 else:
                     ax.plot(data["Residue Number"], data["RMSF"],
-                            color=self.chain_colors[ind])
-
-                ax.set_xlabel("Residue Number")
-                ax.set_ylabel(f'RMSF (Å)')
-                ax.set_title(f"Chain {x}", fontsize=16)
-                ax.xaxis.label.set_size(12)
-                ax.yaxis.label.set_size(12)
-            plt.suptitle("RMSF Analysis", fontsize=18)
-            if intf:
-                plt.legend()
-            fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
-
-        except:
-            fig, axes = plt.subplots(1, len(groups), sharex="all", figsize=(10, 6), sharey=True)
-            for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
-                data = groups.get_group(x)
-                ax.plot(data["Residue Number"], data["RMSF"],
-                        color=self.chain_colors[ind])
-
-                ax.set_xlabel("Residue Number")
-                ax.set_ylabel(f'RMSF (Å)')
-                ax.set_title(f"Chain {x}", fontsize=16)
-                ax.xaxis.label.set_size(12)
-                ax.yaxis.label.set_size(12)
-            plt.suptitle("RMSF Analysis", fontsize=18)
-            if intf:
-                plt.legend()
-            fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
+                            color=self.chain_colors[ind]) #jump yok intf yok
+                
+            ax.set_xlabel("Residue Number")
+            ax.set_ylabel(f'RMSF (Å)')
+            ax.set_title(f"Chain {x}", fontsize=16)
+            ax.xaxis.label.set_size(12)
+            ax.yaxis.label.set_size(12)
+        plt.suptitle("RMSF Analysis", fontsize=18)
+        if intf:
+            plt.legend()
+        fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
 
 
     def plot_biophys(self, path=None):
