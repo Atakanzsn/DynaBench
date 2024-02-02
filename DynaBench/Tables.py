@@ -552,7 +552,7 @@ class dynabench:
                 for file in os.listdir(models_path):
                     fh.write(f"{file}\n")
 
-            subprocess.run(f"{foldx_exe_path} --command=SequenceDetail --output-dir={output_path} --pdb-dir={models_path} --pdb-list={os.path.join(job_path,'pdb_list.out')}", stdout=subprocess.DEVNULL)
+            subprocess.run([f"{foldx_exe_path}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb-dir={models_path}', f"--pdb-list={os.path.join(job_path,'pdb_list.out')}"], stdout=subprocess.DEVNULL)
 
             os.remove(os.path.join(job_path, 'pdb_list.out'))
 
