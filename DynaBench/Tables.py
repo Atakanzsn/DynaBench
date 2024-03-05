@@ -438,10 +438,10 @@ class dynabench:
             """ Residues are classified according to the their rASA (relative accessible solvent area) values for both monomer (rASAm) and complex (rASAc) conformations by Levy et al. For more information about core-rim classification, please visit https://doi.org/10.1016/j.jmb.2010.09.028.
 
             This function classifies the residue according to the given rASA values. The classification labels are:
-                0=Surface, 1=Interior, 2=Support, 3=Rim, 4=Core
+                0=Interior, 1=Surface, 2=Support, 3=Rim, 4=Core
 
             Keyword arguments:
-            delta_ras -- rASAc - rASAm
+            delta_ras -- rASAm - rASAc
             rasc -- rASA value for complex conformation
             rasm -- rASA value for monomer conformation
             Return: int: Interface Class label.

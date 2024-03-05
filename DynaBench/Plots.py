@@ -326,9 +326,9 @@ class Plotter:
             elif r["Interface Label"] == 4:
                 ty.append("Core")
             elif r["Interface Label"] == 1:
-                ty.append("Interior")
-            elif r["Interface Label"] == 0:
                 ty.append("Surface")
+            elif r["Interface Label"] == 0:
+                ty.append("Interior")
 
         plot_df["Interface Text"] = ty
 
