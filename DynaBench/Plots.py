@@ -46,10 +46,8 @@ class Plotter:
         sns.set_style('whitegrid')
 
         if job_name is None:
-            #job_name = input('Plase provide job name:\n')
-            for file in os.listdir(os.getcwd()):
-                if '_db' in file:
-                    self.job_path = os.path.join(os.getcwd(), file)
+            job_name = input('Plase provide job name, or existing job file where analysis folder is located:\n')
+
         else:
             self.job_path = os.path.join(os.getcwd(), job_name)
 
