@@ -520,6 +520,29 @@ class dynabench:
 
                     self.hbond = self.bb_hbond + self.sc_hbond
 
+            def _replace_nonstandards_foldx(file_path):
+                with open(file_path, 'r') as file:
+                    content = file.read()
+                f_name = file_path.split(".pdb")[0]
+                if "HID" in content:
+                    os.system(f"pdb_rplresname -HID:H2S {file_path} >{f_name}_rpl_1.pdb")
+                    os.system(f"pdb_rplresname -HIE:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+
+                elif "HSD" in content:
+                    os.system(f"pdb_rplresname -HSD:H2S {file_path} >{f_name}_rpl_1.pdb")
+                    os.system(f"pdb_rplresname -HSE:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+
+                elif "HISA" in content:
+                    os.system(f"pdb_rplresname -HISA:H2S {file_path} >{f_name}_rpl_1.pdb")
+                    os.system(f"pdb_rplresname -HISB:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+
+                elif "HISD" in content:
+                    os.system(f"pdb_rplresname -HISD:H2S {file_path} >{f_name}_rpl_1.pdb")
+                    os.system(f"pdb_rplresname -HISE:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+
+                os.remove(f"{f_name}_rpl_1.pdb")
+                os.remove(file_path)
+
             result = dict()
 
             #run foldx
@@ -546,6 +569,9 @@ class dynabench:
             
             os.system(f"pdb_splitmodel {inp_path}")
 
+            for file in os.listdir(models_path):
+                _replace_nonstandards_foldx(file)
+
             os.chdir(current)
 
             with open(os.path.join(job_path, 'pdb_list.out'), 'w+') as fh:
@@ -559,7 +585,7 @@ class dynabench:
             #read outputs
 
             for file in os.listdir(output_path):
-                frame = int(file.split('.')[0].split('_')[-1]) - 1
+                frame = int(file.split('.')[0].split('_')[-2]) - 1
                 if frame not in result.keys():
                     result[frame] = dict()
                 with open(os.path.join(output_path, file), 'r+') as fh:
@@ -694,12 +720,50 @@ class dynabench:
             self._struct = app.PDBFile(pdb_path)
             self.target_path = target_path
 
+        def _replace_nonstandards(self, ):
+            with open(self.pdb_path, 'r') as file:
+                content = file.read()
+            f_name = self.pdb_path.split(".pdb")[0]
+            if "HID" in content:
+                os.system(f"pdb_rplresname -HID:HIS {self.pdb_path} >{f_name}_rpl_1.pdb")
+                os.system(f"pdb_rplresname -HIE:HIS {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+                os.remove(f"{f_name}_rpl_1.pdb")
+                
+
+            elif "HSD" in content:
+                os.system(f"pdb_rplresname -HSD:HIS {self.pdb_path} >{f_name}_rpl_1.pdb")
+                os.system(f"pdb_rplresname -HSE:HIS {f_name}_rpl_1.pdb >{f_name}_rpl_2.pdb")
+                os.system(f"pdb_rplresname -HSP:HIP {f_name}_rpl_2.pdb >{f_name}_rpl.pdb")
+                os.remove(f"{f_name}_rpl_1.pdb")
+                os.remove(f"{f_name}_rpl_2.pdb")
+
+            elif "HISA" in content:
+                os.system(f"pdb_rplresname -HISA:HIS {self.pdb_path} >{f_name}_rpl_1.pdb")
+                os.system(f"pdb_rplresname -HISB:HIS {f_name}_rpl_1.pdb >{f_name}_rpl_2.pdb")
+                os.system(f"pdb_rplresname -HISH:HIP {f_name}_rpl_2.pdb >{f_name}_rpl.pdb")
+                os.remove(f"{f_name}_rpl_1.pdb")
+                os.remove(f"{f_name}_rpl_2.pdb")
+
+
+            elif "HISD" in content:
+                os.system(f"pdb_rplresname -HISD:HIS {self.pdb_path} >{f_name}_rpl_1.pdb")
+                os.system(f"pdb_rplresname -HISE:HIS {f_name}_rpl_1.pdb >{f_name}_rpl_2.pdb")
+                os.system(f"pdb_rplresname -HISP:HIP {f_name}_rpl_2.pdb >{f_name}_rpl.pdb")
+                os.remove(f"{f_name}_rpl_1.pdb")
+                os.remove(f"{f_name}_rpl_2.pdb")
+
+            
+            self.pdb_path= f"{f_name}_rpl.pdb"
+
+
         def _calc_interactions(self):
             """Calculates the interactions by Interfacea package.
             
             Return: list: A list of lists such as [interaction_table, frame_number].
             """
             
+            self._replace_nonstandards()
+
             return_list = []
             for i in range(0, len(self._struct._positions)):
                 self._struct.positions = self._struct._positions[i]
