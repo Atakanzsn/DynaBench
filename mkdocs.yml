@@ -1,0 +1,4 @@
+site_name: DynaBench
+repo_url: https://github.com/Atakanzsn/DynaBench.git
+nav:
+  - Home: 'README.md'
