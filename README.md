@@ -53,7 +53,7 @@ cd DynaBench
 ```
 ### Create DynaBench environment
 ```
-conda env create -f requirements.yml
+conda env create -f requirements.txt
 ```
 ```
 conda activate DynaBench
