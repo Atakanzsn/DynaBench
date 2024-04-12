@@ -26,7 +26,8 @@ DynaBench output files are stored in two folders: *tables* and *figures*. Analys
 
 ## Usage
 ### System Dependencies
-* python3 (3.8 or higher) or anaconda3
+* python3 (3.8 or higher)
+* anaconda3
 ### Python Dependencies
 * ipywidgets
 * ipykernel
