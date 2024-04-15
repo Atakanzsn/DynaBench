@@ -52,7 +52,6 @@ class Plotter:
         else:
             self.job_path = os.path.join(os.getcwd(), job_name)
 
-        self.job_path
         self.target_path = os.path.join(self.job_path, "figures")
         self.table_path = os.path.join(self.job_path, "tables")
         if not os.path.exists(self.target_path):
