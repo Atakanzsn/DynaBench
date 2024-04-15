@@ -20,7 +20,7 @@ freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
 
 class dynabench:
-    def __init__(self, inp_file, stride=1, split_models=False, chains=None, job_name=None, dcd_pdb=None, show_time_as="Frame", timestep=None, time_unit=None):
+    def __init__(self, inp_file, stride=1, split_models=False, chains=None, job_name=None, dcd_pdb=None, show_time_as="Frame", timestep=None, time_unit=None, remove_water=True, remove_ions=True):
         """A class to perform Quality Control, Residue Based and Interaction Based analyses on MD simulations. Results of the analyses are printed as .csv files under a folder named 'tables'. MD outputs with any exception are transformed to .pdb file and the analyses are run through this .pdb file. Number of frames that will be fetched from initial input file to be analysed can be set by stride value.
         
         Keyword arguments:
@@ -52,6 +52,8 @@ class dynabench:
         self.rmsd_data= None
         self.get_all_hph = None
         self.foldx_path = None
+        self.remove_water = remove_water
+        self.remove_ions = remove_ions
 
         if job_name is None:
             file_name = inp_file.split('.')[0]
@@ -80,7 +82,12 @@ class dynabench:
             if not self.dcd_pdb:
                 self.dcd_pdb = input('Please provide input pdb file:\n')
 
-            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.dcd_pdb, out_file, stride, inp_file))
+            remove_chains=[]
+            if remove_water:
+                remove_chains.append('V')
+            if remove_ions:
+                remove_chains.append('S')
+            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.dcd_pdb, out_file, stride, inp_file, chains=remove_chains))
 
         elif file_ext == 'pdb':
             if self.stride != 1:
@@ -131,6 +138,8 @@ class dynabench:
             'show_time_as': self.time_Type,
             'timestep': self.timestep,
             'timeunit': self.time_unit,
+            'remove_water': self.remove_water,
+            'remove_ions': self.remove_ions,
 
             'QualityControl': {
                 'Run': self.qc_flag,
@@ -169,7 +178,7 @@ class dynabench:
         os.chdir(job_path)
 
     @staticmethod
-    def _preprocess_dcd(inp_pdb, output_file, stride, ab_file):
+    def _preprocess_dcd(inp_pdb, output_file, stride, ab_file, chains=list):
         """ Transforms input trajectory file into the .pdb file for given stride value.
         
         Keyword arguments:
@@ -185,7 +194,7 @@ class dynabench:
             for ts in u.trajectory[::stride]:
                 W.write(u.atoms)
 
-        ptm.main2(output_file, ['V', 'S'])
+        ptm.main2(output_file, chains)
         #os.system(f'python pdb_tool_modified.py -V,S {output_file} > {name}_chained.pdb')
 
         return name + "_chained.pdb"
@@ -520,7 +529,7 @@ class dynabench:
 
                     self.hbond = self.bb_hbond + self.sc_hbond
 
-            def _replace_nonstandards_foldx(file_path):
+            def _replace_nonstandards_foldx(file_path, models_path):
                 with open(file_path, 'r') as file:
                     content = file.read()
                 f_name = file_path.split(".pdb")[0]
@@ -540,8 +549,10 @@ class dynabench:
                     os.system(f"pdb_rplresname -HISD:H2S {file_path} >{f_name}_rpl_1.pdb")
                     os.system(f"pdb_rplresname -HISE:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
 
-                os.remove(f"{f_name}_rpl_1.pdb")
-                os.remove(file_path)
+                if os.path.exists(os.path.join(models_path, f"{f_name}_rpl_1.pdb")):
+                    os.remove(f"{f_name}_rpl_1.pdb")
+
+                    os.remove(file_path)
 
             result = dict()
 
@@ -570,7 +581,8 @@ class dynabench:
             os.system(f"pdb_splitmodel {inp_path}")
 
             for file in os.listdir(models_path):
-                _replace_nonstandards_foldx(file)
+
+                _replace_nonstandards_foldx(file, models_path)
 
             os.chdir(current)
 
