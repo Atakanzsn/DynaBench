@@ -50,6 +50,9 @@ DynaBench output files are stored in two folders: *tables* and *figures*. Analys
 git clone https://github.com/Atakanzsn/DynaBench.git
 ```
 ```
+git lfs install
+```
+```
 cd DynaBench
 ```
 ### Create DynaBench environment
