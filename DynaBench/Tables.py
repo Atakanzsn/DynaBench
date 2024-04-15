@@ -597,7 +597,10 @@ class dynabench:
             #read outputs
 
             for file in os.listdir(output_path):
-                frame = int(file.split('.')[0].split('_')[-2]) - 1
+                try:
+                    frame = int(file.split('.')[0].split('_')[-2]) - 1
+                except ValueError: 
+                    frame = int(file.split('.')[0].split('_')[-1]) - 1
                 if frame not in result.keys():
                     result[frame] = dict()
                 with open(os.path.join(output_path, file), 'r+') as fh:
