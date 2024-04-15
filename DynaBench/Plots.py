@@ -47,10 +47,12 @@ class Plotter:
 
         if job_name is None:
             job_name = input('Plase provide job name, or existing job file where analysis folder is located:\n')
+            self.job_path = job_name
 
         else:
             self.job_path = os.path.join(os.getcwd(), job_name)
 
+        self.job_path
         self.target_path = os.path.join(self.job_path, "figures")
         self.table_path = os.path.join(self.job_path, "tables")
         if not os.path.exists(self.target_path):
