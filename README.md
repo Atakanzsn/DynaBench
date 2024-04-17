@@ -4,6 +4,8 @@ The Dynabench package is an analysis pipeline for molecular dynamic simulations.
 * **Residue Based:** Biophysical and core-rim classifications; SASA, residue energy analysis.
 * **Interaction Based:** Hydrogen, Hydrophobic, and Ionic Bond analysis with corresponding pairwise residues.
 
+For detailed documentation, please visit https://dynabench.gitbook.io/dynabench
+
 ### DynaBench Architecture
 DynaBench calls several python packages and custom scripts to run Quality Control, Residue Based, and Interaction Based analysis. According to the results of the analysis, by merging some results, visualizations are made. 
 
