@@ -49,7 +49,9 @@ parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
 #tables
-parser.add_argument('--foldx_path', type=str)
+# parser.add_argument('--remove_water', type=bool, help="Removes water if True. Default is True.")
+# parser.add_argument('--remove_ions', type=bool, help="Removes ions if True. Default is True.")
+parser.add_argument('--foldx_path', type=str, help="Absolute path of FoldX folder.")
 parser.add_argument('--time_as', type=str, help="'Frame' or 'Time'. If Time, you should provide time unit with --timeunit command.")
 parser.add_argument('--timestep', type=str, help="Timestep value of simulation.")
 parser.add_argument('--timeunit', type=str, help="Nanosecond or ns is acceptable for now.")
@@ -158,6 +160,8 @@ def main():
             time_as = table_data['show_time_as']
             timestep = table_data['timestep']
             timeunit = table_data['timeunit']
+            remove_water = table_data['remove_water']
+            remove_ions = table_data['remove_ions']
             
 
         else:
@@ -170,6 +174,8 @@ def main():
             time_as = args.time_as
             timestep = args.timestep
             timeunit = args.timeunit
+            remove_water = args.remove_water
+            remove_ions = args.remove_ions
         
         if not stride:
             stride = 1
@@ -177,11 +183,15 @@ def main():
             split_models=False
         if not timestep:
             timestep=1.0
+        if not remove_water:
+            remove_water = True
+        if not remove_ions:
+            remove_ions = True
 
         print('Creating DynaBench class...\n')
 
         mol = dynabench(inp_file=inp_file, stride=stride, split_models=split_models, chains=chains, job_name=job_name, dcd_pdb=dcd_pdb,
-                        show_time_as=time_as, timestep=timestep, time_unit=timeunit)
+                        show_time_as=time_as, timestep=timestep, time_unit=timeunit, remove_water=remove_water, remove_ions=remove_ions)
 
         print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\tInput File: {inp_file}\n\tDCD-related PDB: {dcd_pdb}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
         print_stars(1)
