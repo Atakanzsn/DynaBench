@@ -74,7 +74,7 @@ python setup.py build
 python setup.py install
 ```
 ### Build FoldX for Energy Analysis
-DynaBench uses FoldX for energy analysis. You should download [FoldX](https://foldxsuite.crg.eu/) by yourself. While running Residue-Based analysis, you should give FoldX folder path which includes the FoldX executable to the function.
+DynaBench uses FoldX for energy analysis. You should download [FoldX](https://foldxsuite.crg.eu/) by yourself. While running Residue-Based analysis, you should give FoldX executable to the function.
 
 ## Tests
 Please run the jupyter notebooks in the **tests** folder to test the package. They will create folders with *tests* at the end. Check outputs with the folder without the *tests* at the end. Outputs should be identical.
@@ -101,7 +101,7 @@ draw.plot_rg(path=None)
 
 #Residue Based analysis and visualization
 
-mol.run_res_based('foldx_folder_path')
+mol.run_res_based('foldx_path')
 
 
 draw.plot_rmsf(rmsf_path=None, intf_path=None)
@@ -110,7 +110,7 @@ draw.plot_biophys(path=None)
 
 #Interaction Based analysis and visualization
 
-mol.run_inter_based('foldx_folder_path')
+mol.run_inter_based('foldx_path')
 
 draw.plot_pairwise_freq(path=None)
 
@@ -125,11 +125,11 @@ draw._get_params_()
 Complete run (Quality control, Residue-Based, and Interaction-Based analysis with all visualizations) with input file from the terminal:
 #### With .pdb trajectory
 ```
-dynabench --trajectory_file=trajectory_file.pdb --commands=all_analysis,all_plots --foldx_path=foldx_folder_path
+dynabench --trajectory_file=trajectory_file.pdb --commands=all_analysis,all_plots --foldx_path=foldx_path
 ```
 #### With .dcd trajectory, and .pdb topology, stride value 20
 ```
-dynabench --trajectory_file=trajectory_file.dcd --commands=all_analysis,all_plots --topology_file=topology_file.pdb --foldx_path=foldx_folder_path --stride=20
+dynabench --trajectory_file=trajectory_file.dcd --commands=all_analysis,all_plots --topology_file=topology_file.pdb --foldx_path=foldx_path --stride=20
 ```
 
 #### To run with JSON file from the terminal:

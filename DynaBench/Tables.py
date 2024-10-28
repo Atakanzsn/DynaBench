@@ -562,9 +562,7 @@ class dynabench:
 
             current = os.getcwd()
 
-            for file in os.listdir(foldx_path):
-                if 'foldx' in file:
-                    foldx_exe_path = os.path.abspath(os.path.join(foldx_path, file))
+            foldx_exe_path = foldx_path
 
             if not os.path.exists(os.path.join(job_path, 'models')):
                 os.mkdir(os.path.join(job_path, 'models'))

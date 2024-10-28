@@ -43,7 +43,7 @@ parser = argparse.ArgumentParser()
 
 
 #required?
-parser.add_argument('-traj', '--trajectory_file', type=str, help="Input File in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
+parser.add_argument('-traj', '--trajectory_file', type=str, help="Trajectory file in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
 parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
@@ -51,11 +51,11 @@ parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if 
 #tables
 # parser.add_argument('--remove_water', type=bool, help="Removes water if True. Default is True.")
 # parser.add_argument('--remove_ions', type=bool, help="Removes ions if True. Default is True.")
-parser.add_argument('--foldx_path', type=str, help="Absolute path of FoldX folder.")
+parser.add_argument('--foldx_path', type=str, help="Absolute path of FoldX executable.")
 parser.add_argument('--time_as', type=str, help="'Frame' or 'Time'. If Time, you should provide time unit with --timeunit command.")
 parser.add_argument('--timestep', type=str, help="Timestep value of simulation.")
 parser.add_argument('--timeunit', type=str, help="Nanosecond or ns is acceptable for now.")
-parser.add_argument('--topology_file', type=str, help="Path of pdb file for dcd inputs.")
+parser.add_argument('--topology_file', type=str, help="Path of topology file for dcd trajectories.")
 parser.add_argument('-s', '--stride', type=int, help="Stride value.")
 parser.add_argument('-sm', '--split_models', type=bool, help="Whether models will be splitted or not.")
 parser.add_argument('-ch', '--chains', type=str, help="For heteromers, you can decide which two chains to be analyzed. Provide input such as 'A,B'.")
