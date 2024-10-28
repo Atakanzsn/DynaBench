@@ -86,7 +86,7 @@ You can run from a script or shell. To run from the terminal, you can either run
 import DynaBench
 
 #load trajectory .dcd and topology .pdb file
-mol = DynaBench.dynabench(inp_file='your_trajectory_path', dcd_pdb='your_topology_path',
+mol = DynaBench.dynabench(trajectory_file='your_trajectory_path', topology_file='your_topology_path',
  split_models=False, show_time_as='Frame')
 
 #define plotter class
@@ -123,13 +123,13 @@ draw._get_params_()
 ### Run from terminal
 
 Complete run (Quality control, Residue-Based, and Interaction-Based analysis with all visualizations) with input file from the terminal:
-#### With .pdb input
+#### With .pdb trajectory
 ```
-dynabench --input_file=input_file.pdb --commands=all_analysis,all_plots --foldx_path=foldx_folder_path
+dynabench --trajectory_file=trajectory_file.pdb --commands=all_analysis,all_plots --foldx_path=foldx_folder_path
 ```
-#### With .dcd input, stride value 20
+#### With .dcd trajectory, and .pdb topology, stride value 20
 ```
-dynabench --input_file=trajectory.dcd --commands=all_analysis,all_plots --dcd_pdb=topology.pdb --foldx_path=foldx_folder_path --stride=20
+dynabench --trajectory_file=trajectory_file.dcd --commands=all_analysis,all_plots --topology_file=topology_file.pdb --foldx_path=foldx_folder_path --stride=20
 ```
 
 #### To run with JSON file from the terminal:

@@ -43,7 +43,7 @@ parser = argparse.ArgumentParser()
 
 
 #required?
-parser.add_argument('-ip', '--input_file', type=str, help="Input File in .dcd or .pfb formats. If .dcd, pelase provide .pdb file with '--dcd_pdb' command.")
+parser.add_argument('-traj', '--trajectory_file', type=str, help="Input File in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
 parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
@@ -55,7 +55,7 @@ parser.add_argument('--foldx_path', type=str, help="Absolute path of FoldX folde
 parser.add_argument('--time_as', type=str, help="'Frame' or 'Time'. If Time, you should provide time unit with --timeunit command.")
 parser.add_argument('--timestep', type=str, help="Timestep value of simulation.")
 parser.add_argument('--timeunit', type=str, help="Nanosecond or ns is acceptable for now.")
-parser.add_argument('--dcd_pdb', type=str, help="Path of pdb file for dcd inputs.")
+parser.add_argument('--topology_file', type=str, help="Path of pdb file for dcd inputs.")
 parser.add_argument('-s', '--stride', type=int, help="Stride value.")
 parser.add_argument('-sm', '--split_models', type=bool, help="Whether models will be splitted or not.")
 parser.add_argument('-ch', '--chains', type=str, help="For heteromers, you can decide which two chains to be analyzed. Provide input such as 'A,B'.")
@@ -151,12 +151,12 @@ def main():
     if table_commands:
 
         if a_json_:
-            inp_file = table_data['input_file']
+            trajectory_file = table_data['trajectory_file']
             job_name = table_data['job_name']
             stride = table_data['stride']
             split_models = table_data['split_models']
             chains = table_data['chains']
-            dcd_pdb = table_data['dcd_pdb']
+            topology_file = table_data['topology_file']
             time_as = table_data['show_time_as']
             timestep = table_data['timestep']
             timeunit = table_data['timeunit']
@@ -165,12 +165,12 @@ def main():
             
 
         else:
-            inp_file = args.input_file
+            trajectory_file = args.trajectory_file
             job_name = args.job_name
             stride = args.stride
             split_models = args.split_models
             chains = args.chains
-            dcd_pdb = args.dcd_pdb
+            topology_file = args.topology_file
             time_as = args.time_as
             timestep = args.timestep
             timeunit = args.timeunit
@@ -190,10 +190,10 @@ def main():
 
         print('Creating DynaBench class...\n')
 
-        mol = dynabench(inp_file=inp_file, stride=stride, split_models=split_models, chains=chains, job_name=job_name, dcd_pdb=dcd_pdb,
+        mol = dynabench(trajectory_file=trajectory_file, stride=stride, split_models=split_models, chains=chains, job_name=job_name, topology_file=topology_file,
                         show_time_as=time_as, timestep=timestep, time_unit=timeunit, remove_water=remove_water, remove_ions=remove_ions)
 
-        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\tInput File: {inp_file}\n\tDCD-related PDB: {dcd_pdb}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
+        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\tInput File: {trajectory_file}\n\tDCD-related PDB: {topology_file}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
         print_stars(1)
         print("\n")
 

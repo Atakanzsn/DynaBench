@@ -20,16 +20,16 @@ freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
 
 class dynabench:
-    def __init__(self, inp_file, stride=1, split_models=False, chains=None, job_name=None, dcd_pdb=None, show_time_as="Frame", timestep=None, time_unit=None, remove_water=True, remove_ions=True):
+    def __init__(self, trajectory_file, stride=1, split_models=False, chains=None, job_name=None, topology_file=None, show_time_as="Frame", timestep=None, time_unit=None, remove_water=True, remove_ions=True):
         """A class to perform Quality Control, Residue Based and Interaction Based analyses on MD simulations. Results of the analyses are printed as .csv files under a folder named 'tables'. MD outputs with any exception are transformed to .pdb file and the analyses are run through this .pdb file. Number of frames that will be fetched from initial input file to be analysed can be set by stride value.
         
         Keyword arguments:
-        inp_file -- Path to the input file
+        trajectory_file -- Path to the input file
         stride -- Number of frames to be skipped. By default, 1 which means no frames to be skipped.
         split_models -- Boolean. By default, False. If True, all the models will be splitted into a folder named 'models'.
         Return: None
         """
-        handler.test_inp_path(inp_file)
+        handler.test_inp_path(trajectory_file)
         handler.test_stride(stride)
         handler.test_split_models(split_models)
 
@@ -41,13 +41,13 @@ class dynabench:
         #params
         self.time_Type = show_time_as
         self.time_unit = time_unit
-        self.inp_file_ = inp_file
+        self.trajectory_file_ = trajectory_file
         self.split_models_ = split_models
         self.chains_ = chains
         self.qc_flag = False
         self.rb_flag = False
         self.ib_flag = False
-        self.dcd_pdb = dcd_pdb
+        self.topology_file = topology_file
         self.stride = stride
         self.rmsd_data= None
         self.get_all_hph = None
@@ -56,7 +56,7 @@ class dynabench:
         self.remove_ions = remove_ions
 
         if job_name is None:
-            file_name = inp_file.split('.')[0]
+            file_name = trajectory_file.split('.')[0]
             job_name = file_name + '_db' + str(random.randrange(100,999))
 
         
@@ -73,27 +73,27 @@ class dynabench:
             os.mkdir(self.target_path)
 
         #check for preprocess ,define pdb_file
-        file_name = inp_file.split(".")[0]
-        file_ext = inp_file.split(".")[-1]
+        file_name = trajectory_file.split(".")[0]
+        file_ext = trajectory_file.split(".")[-1]
 
         if file_ext == 'dcd':
             name = file_name.split("\\")[-1].split(".")[0]
             out_file = os.path.join(self.job_path, f"{name}.pdb")
-            if not self.dcd_pdb:
-                self.dcd_pdb = input('Please provide input pdb file:\n')
+            if not self.topology_file:
+                self.topology_file = input('Please provide input pdb file:\n')
 
             remove_chains=[]
             if remove_water:
                 remove_chains.append('V')
             if remove_ions:
                 remove_chains.append('S')
-            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.dcd_pdb, out_file, stride, inp_file, chains=remove_chains))
+            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.topology_file, out_file, stride, trajectory_file, chains=remove_chains))
 
         elif file_ext == 'pdb':
             if self.stride != 1:
                 name = file_name.split("\\")[-1]
                 out_file = os.path.join(self.job_path, f"{name}_stride{stride}.pdb")
-                u = mda.Universe(inp_file)
+                u = mda.Universe(trajectory_file)
 
                 with mda.Writer(out_file, u.atoms.n_atoms) as W:
                     for ts in u.trajectory[::stride]:
@@ -101,7 +101,7 @@ class dynabench:
 
                 self.pdb_file = out_file
             else:
-                self.pdb_file = inp_file
+                self.pdb_file = trajectory_file
 
         #check for split models
         if split_models:
@@ -129,8 +129,8 @@ class dynabench:
     def _get_params_(self):
         params = {
             'job_name':self.job_name,
-            'input_file': self.inp_file_,
-            'dcd_pdb': self.dcd_pdb,
+            'input_file': self.trajectory_file_,
+            'topology_file': self.topology_file,
             'stride': self.stride,
             'split_models':self.split_models_,
             'chains': self.chains_,
@@ -182,7 +182,7 @@ class dynabench:
         """ Transforms input trajectory file into the .pdb file for given stride value.
         
         Keyword arguments:
-        inp_file -- Input trajectory file
+        trajectory_file -- Input trajectory file
         output_file -- Output .pdb file
         stride -- Number of frames to be skipped.
         Return: None
@@ -494,11 +494,11 @@ class dynabench:
             return res_dict[res_type]
 
         @staticmethod
-        def _res_en(inp_file, job_path, foldx_path):
+        def _res_en(trajectory_file, job_path, foldx_path):
             """ Calculates the residue energies (Van der Waals, electrostatic, desolvation, and hydrogen bond for both same chain and different chain interactions) by running EvoEF1 for each frame.
             
             Keyword arguments:
-            inp_file -- Input .pdb file
+            trajectory_file -- Input .pdb file
             Return: dict: Dictionary-in-dictionary with the order frame_number-residue-energy_values.
             """
             
@@ -558,7 +558,7 @@ class dynabench:
 
             #run foldx
 
-            inp_path = os.path.abspath(inp_file)
+            inp_path = os.path.abspath(trajectory_file)
 
             current = os.getcwd()
 
