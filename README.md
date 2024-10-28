@@ -45,12 +45,9 @@ DynaBench output files are stored in two folders: *tables* and *figures*. Analys
 
 ### Installation
 
-**We recommend you use [git](https://git-scm.com/downloads) clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs.**
+**We recommend you use [git](https://git-scm.com/downloads) clone instead of download with .zip while installing the package. Downloading with .zip may cause problems in test pdbs. Because test folders contain large files, there may be errors during cloning the repository. To avoid these possible error you can install GIT-LFS. To install git-lfs, please visit https://git-lfs.com/**
 
 ### Clone the repository
-```
-git lfs install
-```
 ```
 git clone https://github.com/Atakanzsn/DynaBench.git
 ```
