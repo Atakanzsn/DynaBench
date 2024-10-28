@@ -49,8 +49,8 @@ parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
 #tables
-# parser.add_argument('--remove_water', type=bool, help="Removes water if True. Default is True.")
-# parser.add_argument('--remove_ions', type=bool, help="Removes ions if True. Default is True.")
+parser.add_argument('--remove_water', type=bool, help="Removes water if True. Default is True.")
+parser.add_argument('--remove_ions', type=bool, help="Removes ions if True. Default is True.")
 parser.add_argument('--foldx_path', type=str, help="Absolute path of FoldX executable.")
 parser.add_argument('--time_as', type=str, help="'Frame' or 'Time'. If Time, you should provide time unit with --timeunit command.")
 parser.add_argument('--timestep', type=str, help="Timestep value of simulation.")
@@ -183,9 +183,9 @@ def main():
             split_models=False
         if not timestep:
             timestep=1.0
-        if not remove_water:
+        if remove_water is None:
             remove_water = True
-        if not remove_ions:
+        if remove_ions is None:
             remove_ions = True
 
         print('Creating DynaBench class...\n')
