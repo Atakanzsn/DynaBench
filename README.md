@@ -10,7 +10,7 @@ For detailed documentation, please visit https://dynabench.gitbook.io/dynabench
 DynaBench calls several python packages and custom scripts to run Quality Control, Residue Based, and Interaction Based analysis. According to the results of the analysis, by merging some results, visualizations are made. 
 
 
-![DynaBench (3)](https://github.com/Atakanzsn/DynaBench/assets/63709928/d71883de-b440-44a7-ad0f-defb29d7eeee)
+![DynaBench (3)](DynaBench_structure.png)
 
 
 
@@ -104,6 +104,7 @@ mol.run_res_based('foldx_path')
 draw.plot_rmsf(rmsf_path=None, intf_path=None)
 draw.plot_int_energy(thereshold=50.0, res_path=None, intf_path=None)
 draw.plot_biophys(path=None)
+draw.plot_SASA()
 
 #Interaction Based analysis and visualization
 
