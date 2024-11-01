@@ -43,8 +43,8 @@ parser = argparse.ArgumentParser()
 
 
 #required?
-parser.add_argument('-traj', '--trajectory_file', type=str, help="Trajectory file in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
-parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
+parser.add_argument('-t', '--trajectory_file', type=str, help="Trajectory file in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
+parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
@@ -127,13 +127,15 @@ if args.plot_json:
         plot_commands.append('PlotBiophys')
     if plot_data['PlotResEne']['Run']:
         plot_commands.append('PlotResEne')
+    if plot_data['PlotSASA']['Run']:
+        plot_commands.append('PlotSASA')
     
 
 else:
     p_json = False
     if args.commands:
         if 'all_plots' in commands:
-            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotResEne']
+            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne']
         else:
             plot_commands = [x for x in commands if 'plot' in x.lower()]
     else:
@@ -329,6 +331,14 @@ def main():
             
             draw.plot_biophys(path=biophys_tpath)
             print('Biophysical Type plot is done!\n')
+            print_stars(1)
+            print("\n")
+        
+        if 'PlotSASA' in plot_commands:
+            
+            draw.plot_SASA()
+
+            print('Interface Area plot is done!\n')
             print_stars(1)
             print("\n")
 

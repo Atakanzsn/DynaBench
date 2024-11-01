@@ -425,7 +425,7 @@ class dynabench:
                 t = 'Frame'
 
             self.target_path = target_path
-            self.header = [f"{t}", "Chain", "Residue", "Residue Number", "rASAc", "rASAm", "delta rASA",
+            self.header = [f"{t}", "Chain", "Residue", "Residue Number", "rASAc", "rASAm", "delta rASA", "SASA",
                            "Interface Label", "Residue Biophysical Type", "Backbone Hbond Energy","Sidechain Hbond Energy", "Van der Waals Energy", "Electrostatic Energy",
                            "Total Residue Energy","\n"]
 
@@ -660,7 +660,9 @@ class dynabench:
                     for resnum, val in value.items():
                         rasc = val.relativeTotal
                         rasm = rasm_chain_dict[key][resnum].relativeTotal
+                        rasm_total = rasm_chain_dict[key][resnum].total
                         delta_ras = rasm - rasc
+                        nbsa = (rasm * rasm_total) / 100
 
                         label = self._calc_interface_class(delta_ras, rasc, rasm)
                         try:
@@ -678,7 +680,7 @@ class dynabench:
                             t = frame * self.stride * float(self.timestep)
                         else:
                             t = frame
-                        row = f"{t},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
+                        row = f"{t},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{f'{nbsa:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
 
                         file.write(row)
             file.close()

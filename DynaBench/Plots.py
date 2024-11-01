@@ -42,6 +42,7 @@ class Plotter:
         self._ene_thr = None
         self._ene_intf = None
         self._ene_path = None
+        self._plot_SASA = False
 
         sns.set_style('whitegrid')
 
@@ -279,7 +280,6 @@ class Plotter:
             plt.legend()
         fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
 
-
     def plot_biophys(self, path=None):
         """A function to perform barplot core-rim and biophysical classification visualization. Reads 'inetrface_label.csv' file.
         
@@ -354,6 +354,51 @@ class Plotter:
 
         plt.title("Biophysical Classification Counts of Residues")
         fig.savefig(os.path.join(self.target_path, f'Biophys_count.png'), dpi=300)
+
+    def plot_SASA(self):
+        """A function to perform line plot Interface Area in A^2 visualization for each chain and the overall complex. 'Reads residue_based_tbl.csv' file.
+        
+        Return: None
+        """
+
+        self.plot_SASA = True
+
+        df = pd.read_csv(os.path.join(self.table_path, "residue_based_tbl.csv"))
+        df = df.iloc[:, [0,1,2,3,7,8]]
+
+        plot_df = pd.DataFrame(columns=["Frame", "Chain", "SASA"])
+
+        time_name = df.columns[0]
+
+        int_df = df[(df["Interface Label"] == 4) | (df["Interface Label"] == 2) | (df["Interface Label"] == 3)]
+            
+        g2 = int_df.groupby(["Chain"])
+
+        fig, ax = plt.subplots(figsize=(5, 2.7), layout='constrained')
+        for chain in g2.groups:
+            chain_df = g2.get_group(chain)
+            frames = chain_df.groupby([time_name])
+            
+            for frame in frames.groups:
+                frame_df = frames.get_group(frame)
+                frame_sasa = frame_df['SASA'].sum()
+                plot_df.loc[len(plot_df)] = [frame, chain, frame_sasa]
+
+        for i, chain_ in enumerate(plot_df.groupby('Chain').groups):
+            ax.plot(plot_df.groupby('Chain').get_group(chain_)['Frame'], plot_df.groupby('Chain').get_group(chain_)['SASA'], label=chain_, color=self.chain_colors[i])
+
+        sums = [plot_df.groupby('Frame').get_group(group)['SASA'].sum() for group in plot_df.groupby('Frame').groups]
+
+        ax.plot(plot_df['Frame'].unique() ,sums, color=self.complex_color, label="Complex")
+         
+        ax.set_xlabel(time_name)
+        ax.set_ylabel(f'Interface Area (Å^2)')
+
+        ax.set_title(f"Interaction Surface Area throughout Simulation")
+        ax.legend(title="Chains")
+        fig.savefig(os.path.join(self.target_path, f'interface_areas.png'), dpi=300)
+
+
 
     def plot_pairwise_freq(self, path=None):
         """A function to perform barplot visualization of interaction frequency in simulation of residue pairs with locations (side chain or backbone) of atoms that participated in interaction. Reads 'int_based_table.csv' file.
@@ -538,6 +583,9 @@ class Plotter:
                 'biophys_table_path':self._biophys_path,
                 'biophys_palette': self._biophys_palette
                 },
+            'PlotSASA' : {
+                'Run': self._plot_SASA
+            },
             'PlotPairwiseFreq': {
                 'Run': self._bar,
                 'bar_table_path':self._bar_path,
