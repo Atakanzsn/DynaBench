@@ -43,6 +43,8 @@ class Plotter:
         self._ene_intf = None
         self._ene_path = None
         self._plot_SASA = False
+        self._plot_irmsd = False
+        self._plot_fnonnat = False
 
         sns.set_style('whitegrid')
 
@@ -280,6 +282,63 @@ class Plotter:
             plt.legend()
         fig.savefig(os.path.join(self.target_path, f'RMSF-proteinCA.png'), dpi=300)
 
+    def plot_irmsd(self, path=None):
+        """A function to perform lineplot visualization of interface RMSD through the simulation. Reads 'dockq_results.csv' file.
+        
+        Return: None
+        """
+
+        self._plot_irmsd = True
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
+
+        
+        self._irmsd_path = path
+        irmsds = df['iRMSD']
+        frames = df.columns[0]
+        frames_plot = df[frames]
+
+        fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
+        ax.plot(frames_plot, irmsds, label=df['mapping'], color=self.chain_colors[0])
+
+        ax.set_xlabel(df.columns[0])
+        ax.set_ylabel('iRMSD (Å)')
+
+        ax.set_title('iRMSD Analysis')
+        fig.savefig(os.path.join(self.target_path, f'irmsd_analysis.png'), dpi=300)
+
+    def plot_fnonnat(self, path=None):
+        """A function to perform lineplot visualization of fraction of native contacts through the simulation. Reads 'dockq_results.csv' file.
+        
+        Return: None
+        """
+
+        self._plot_fnonnat = True
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
+
+        self._fnonnat_path = path
+        fnonnat = df['fnonnat']
+        frames = df.columns[0]
+        frames_plot=df[frames]    
+
+        fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
+        ax.plot(frames_plot, fnonnat, label=df['mapping'], color=self.chain_colors[0])
+
+        ax.set_xlabel(df.columns[0])
+        ax.set_ylabel('Fraction of Native Contacts')
+
+        ax.set_title('Fraction of Native Contacts')
+        fig.savefig(os.path.join(self.target_path, f'fnonnat_analysis.png'), dpi=300)
+
     def plot_biophys(self, path=None):
         """A function to perform barplot core-rim and biophysical classification visualization. Reads 'inetrface_label.csv' file.
         
@@ -355,7 +414,7 @@ class Plotter:
         plt.title("Biophysical Classification Counts of Residues")
         fig.savefig(os.path.join(self.target_path, f'Biophys_count.png'), dpi=300)
 
-    def plot_SASA(self):
+    def plot_SASA(self, path=None):
         """A function to perform line plot Interface Area in A^2 visualization for each chain and the overall complex. 'Reads residue_based_tbl.csv' file.
         
         Return: None
@@ -363,12 +422,19 @@ class Plotter:
 
         self.plot_SASA = True
 
-        df = pd.read_csv(os.path.join(self.table_path, "residue_based_tbl.csv"))
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "residue_based_tbl.csv"))
+
+        self._sasa_path = path
         df = df.iloc[:, [0,1,2,3,7,8]]
 
-        plot_df = pd.DataFrame(columns=["Frame", "Chain", "SASA"])
-
         time_name = df.columns[0]
+
+        plot_df = pd.DataFrame(columns=[time_name, "Chain", "SASA"])
+
 
         int_df = df[(df["Interface Label"] == 4) | (df["Interface Label"] == 2) | (df["Interface Label"] == 3)]
             
@@ -385,11 +451,11 @@ class Plotter:
                 plot_df.loc[len(plot_df)] = [frame, chain, frame_sasa]
 
         for i, chain_ in enumerate(plot_df.groupby('Chain').groups):
-            ax.plot(plot_df.groupby('Chain').get_group(chain_)['Frame'], plot_df.groupby('Chain').get_group(chain_)['SASA'], label=chain_, color=self.chain_colors[i])
+            ax.plot(plot_df.groupby('Chain').get_group(chain_)[time_name], plot_df.groupby('Chain').get_group(chain_)['SASA'], label=chain_, color=self.chain_colors[i])
 
-        sums = [plot_df.groupby('Frame').get_group(group)['SASA'].sum() for group in plot_df.groupby('Frame').groups]
+        sums = [plot_df.groupby(time_name).get_group(group)['SASA'].sum() for group in plot_df.groupby(time_name).groups]
 
-        ax.plot(plot_df['Frame'].unique() ,sums, color=self.complex_color, label="Complex")
+        ax.plot(plot_df[time_name].unique() ,sums, color=self.complex_color, label="Complex")
          
         ax.set_xlabel(time_name)
         ax.set_ylabel(f'Interface Area (Å^2)')
@@ -397,8 +463,6 @@ class Plotter:
         ax.set_title(f"Interaction Surface Area throughout Simulation")
         ax.legend(title="Chains")
         fig.savefig(os.path.join(self.target_path, f'interface_areas.png'), dpi=300)
-
-
 
     def plot_pairwise_freq(self, path=None):
         """A function to perform barplot visualization of interaction frequency in simulation of residue pairs with locations (side chain or backbone) of atoms that participated in interaction. Reads 'int_based_table.csv' file.
@@ -584,7 +648,17 @@ class Plotter:
                 'biophys_palette': self._biophys_palette
                 },
             'PlotSASA' : {
-                'Run': self._plot_SASA
+                'Run': self._plot_SASA,
+                'sasa_path': self._sasa_path,
+            },
+            'PlotiRMSD': {
+                'Run': self._plot_irmsd,
+                'irmsd_path': self._irmsd_path,
+
+            },
+            'PlotFnonnat': {
+                'Run': self._plot_fnonnat,
+                'fnonnat_path': self._fnonnat_path
             },
             'PlotPairwiseFreq': {
                 'Run': self._bar,
