@@ -170,12 +170,13 @@ class dynabench:
         file -- trajectory file
         Return: None
         """
+        now = os.getcwd()
         models_path = os.path.join(job_path, 'models')
         if not os.path.exists(models_path):
             os.mkdir(models_path)
         os.chdir(models_path)
-        os.system(f"pdb_splitmodel ..\\{file}")
-        os.chdir(job_path)
+        os.system(f"pdb_splitmodel {file}")
+        os.chdir(now)
 
     @staticmethod
     def _preprocess_dcd(inp_pdb, output_file, stride, ab_file, chains=list):
@@ -210,10 +211,11 @@ class dynabench:
         self.rmsd_data = rmsd_data
         self.qc_flag = True
 
-        c = self.QualityControl(self.pdb_file, self.target_path, rmsd_data=rmsd_data,
+        c = self.QualityControl(self.pdb_file, self.target_path, rmsd_data=rmsd_data, job_path=self.job_path,
                                 timestep= self.timestep, time_unit = self.time_unit, time_type=self.time_Type, stride=self.stride)
         c.quality_tbls_overtime()
         c.quality_tbls_overres()
+        c.run_dockq()
 
     def run_res_based(self, foldx_path):
         """ The function to run Residue Based analyses in one line. Defines Residue Based class and runs the functions in it.
@@ -240,7 +242,7 @@ class dynabench:
 
     
     class QualityControl:
-        def __init__(self, pdb_file, target_path, rmsd_data, timestep, time_unit, time_type, stride):
+        def __init__(self, pdb_file, target_path, job_path, rmsd_data, timestep, time_unit, time_type, stride):
             """ A class to perform Quality Control analyses (RMSD, RG, and RMSF) of the trajectory. Initially runs private methods and defines RMSD, RG, and RMSF results of the trajectory.
 
             Return: None
@@ -249,6 +251,7 @@ class dynabench:
             self.stride = stride
             self.timetype = time_type
             self.timestep = timestep
+            self.job_path = job_path
             if time_type == 'Time':
                 self.u = mda.Universe(pdb_file, dt=timestep)
                 if time_unit.lower() == 'ns' or time_unit.lower() == 'nanosecond':
@@ -381,6 +384,34 @@ class dynabench:
 
                 print(",".join(row), end="\n", file=file)
             file.close()
+
+        def run_dockq(self):
+            files_path = os.path.join(self.job_path, 'models')
+            dataf = pd.DataFrame(columns=[self.header_overtime[0], 'Total', 'iRMSD', 'fnonnat', 'clashes', 'mapping'])
+            #results = dict()
+
+            for file in os.listdir(files_path):
+                frame_num = int(file.split('.')[0].split('_')[-1])
+                if frame_num == 1:
+                    native = os.path.join(files_path, file)
+
+                else:
+                    proc = subprocess.Popen(['DockQ', f'{os.path.join(files_path, file)}', f'{native}', '--short'],stdout=subprocess.PIPE)
+                    lines = proc.stdout.readlines()
+
+                    for line in lines:
+                        if line.startswith(b'DockQ'):
+                            splitted = line.split(b' ')
+                            dockq = float(splitted[1])
+                            irmsd = float(splitted[3])
+                            fnonnat = float(splitted[9])
+                            clashes = float(splitted[13])
+                            mapping = str(splitted[15]).rstrip("'")
+                            mapping = mapping.lstrip("b'")
+                            dataf.loc[len(dataf)] = [(frame_num - 1) * self.stride * float(self.timestep), dockq, irmsd, fnonnat, clashes, mapping]
+
+            dataf = dataf.sort_values(self.header_overtime[0])
+            dataf.to_csv(os.path.join(self.target_path, 'dockq_results.csv'), index=False)
 
         def quality_tbls_overres(self):
             """Reads RMSF results and writes them to the csv file with respect to chain id and residue number.
@@ -679,7 +710,7 @@ class dynabench:
                         if self.time_type == 'Time':
                             t = frame * self.stride * float(self.timestep)
                         else:
-                            t = frame
+                            t = frame * self.stride
                         row = f"{t},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{f'{nbsa:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
 
                         file.write(row)

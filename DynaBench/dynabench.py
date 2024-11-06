@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 
 #required?
 parser.add_argument('-t', '--trajectory_file', type=str, help="Trajectory file in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
-parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
+parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotiRMSD', 'PlotFnonnat', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
@@ -71,6 +71,12 @@ parser.add_argument('--biophy_tpath', type=str, help="CSV data path of residue b
 parser.add_argument('--bondfreq_tpath', type=str, help="CSV data of interaction based analyse.") #bondfreq draw table path
 parser.add_argument('--int_ene_itpath', type=str, help="CSV data path of residue based analyse.") #interaction energy draw interface res. path
 parser.add_argument('--int_ene_tpath', type=str, help="CSV data including interface residues path for interaction energy plot.") #interaction energy draw table path
+parser.add_argument('--sasa_tpath', type=str, help="CSV data path for SASA plot.") #sasa draw table path
+parser.add_argument('--irmsd_tpath', type=str, help="CSV data path for iRMSD plot.") #irmsd draw table path
+parser.add_argument('--fnonnat_tpath', type=str, help="CSV data path for Fnonnat plot.") #fnonnat draw table path
+
+
+
 
 parser.add_argument('--table_json', type=str, help="JSON file path for analyse runs.")
 parser.add_argument('--plot_json', type=str, help="JSON file path for plot runs.")
@@ -129,13 +135,17 @@ if args.plot_json:
         plot_commands.append('PlotResEne')
     if plot_data['PlotSASA']['Run']:
         plot_commands.append('PlotSASA')
+    if plot_data['PlotiRMSD']['Run']:
+        plot_commands.append('PlotiRMSD')
+    if plot_data['PlotFnonnat']['Run']:
+        plot_commands.append('PlotFnonnat')
     
 
 else:
     p_json = False
     if args.commands:
         if 'all_plots' in commands:
-            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne']
+            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne', 'PlotiRMSD', 'PlotFnonnat']
         else:
             plot_commands = [x for x in commands if 'plot' in x.lower()]
     else:
@@ -195,7 +205,7 @@ def main():
         mol = dynabench(trajectory_file=trajectory_file, stride=stride, split_models=split_models, chains=chains, job_name=job_name, topology_file=topology_file,
                         show_time_as=time_as, timestep=timestep, time_unit=timeunit, remove_water=remove_water, remove_ions=remove_ions)
 
-        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\tInput File: {trajectory_file}\n\tDCD-related PDB: {topology_file}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
+        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\Trajectory File: {trajectory_file}\n\tTopology File: {topology_file}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
         print_stars(1)
         print("\n")
 
@@ -335,10 +345,44 @@ def main():
             print("\n")
         
         if 'PlotSASA' in plot_commands:
+
+            if p_json:
+                sasa_tpath = plot_data['PlotSASA']['sasa_path']
+
+            else:
+                sasa_tpath = args.sasa_tpath
             
-            draw.plot_SASA()
+            draw.plot_SASA(path=sasa_tpath)
 
             print('Interface Area plot is done!\n')
+            print_stars(1)
+            print("\n")
+
+        if 'PlotiRMSD' in plot_commands:
+
+            if p_json:
+                irmsd_tpath = plot_data['PlotiRMSD']['irmsd_path']
+
+            else:
+                irmsd_tpath = args.irmsd_tpath
+            
+            draw.plot_irmsd(path=irmsd_tpath)
+
+            print('Interface RMSD plot is done!\n')
+            print_stars(1)
+            print("\n")
+
+        if 'PlotFnonnat' in plot_commands:
+
+            if p_json:
+                fnonnat_tpath = plot_data['PlotFnonnat']['fnonnat_path']
+
+            else:
+                fnonnat_tpath = args.fnonnat_tpath
+            
+            draw.plot_fnonnat(path=fnonnat_tpath)
+
+            print('Fraction of Native Contacs plot is done!\n')
             print_stars(1)
             print("\n")
 
