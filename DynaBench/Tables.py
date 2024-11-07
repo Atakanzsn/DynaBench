@@ -387,7 +387,7 @@ class dynabench:
 
         def run_dockq(self):
             files_path = os.path.join(self.job_path, 'models')
-            dataf = pd.DataFrame(columns=[self.header_overtime[0], 'Total', 'iRMSD', 'fnonnat', 'clashes', 'mapping'])
+            dataf = pd.DataFrame(columns=[self.header_overtime[0], 'Total', 'iRMSD', 'lRMSD','fnonnat', 'clashes', 'mapping'])
             #results = dict()
 
             for file in os.listdir(files_path):
@@ -404,11 +404,12 @@ class dynabench:
                             splitted = line.split(b' ')
                             dockq = float(splitted[1])
                             irmsd = float(splitted[3])
+                            lrmsd = float(splitted[5])
                             fnonnat = float(splitted[9])
                             clashes = float(splitted[13])
                             mapping = str(splitted[15]).rstrip("'")
                             mapping = mapping.lstrip("b'")
-                            dataf.loc[len(dataf)] = [(frame_num - 1) * self.stride * float(self.timestep), dockq, irmsd, fnonnat, clashes, mapping]
+                            dataf.loc[len(dataf)] = [(frame_num - 1) * self.stride * float(self.timestep), dockq, irmsd, lrmsd, fnonnat, clashes, mapping]
 
             dataf = dataf.sort_values(self.header_overtime[0])
             dataf.to_csv(os.path.join(self.target_path, 'dockq_results.csv'), index=False)
