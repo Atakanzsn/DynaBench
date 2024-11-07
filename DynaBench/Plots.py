@@ -45,6 +45,7 @@ class Plotter:
         self._plot_SASA = False
         self._plot_irmsd = False
         self._plot_fnonnat = False
+        self._plot_lrmsd = False
 
         sns.set_style('whitegrid')
 
@@ -307,9 +308,41 @@ class Plotter:
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('iRMSD (Å)')
+        ax.set_ylim(bottom=0)
 
         ax.set_title('iRMSD Analysis')
         fig.savefig(os.path.join(self.target_path, f'irmsd_analysis.png'), dpi=300)
+
+    def plot_lrmsd(self, path=None):
+        """A function to perform lineplot visualization of ligand RMSD through the simulation. Reads 'dockq_results.csv' file.
+        
+        Return: None
+        """
+
+        self._plot_lrmsd = True
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
+
+        
+        self._lrmsd_path = path
+        lrmsds = df['lRMSD']
+        frames = df.columns[0]
+        frames_plot = df[frames]
+
+        fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
+        ax.plot(frames_plot, lrmsds, label=df['mapping'], color=self.chain_colors[0])
+
+        ax.set_xlabel(df.columns[0])
+        ax.set_ylabel('lRMSD (Å)')
+        ax.set_ylim(bottom=0)
+
+
+        ax.set_title('lRMSD Analysis')
+        fig.savefig(os.path.join(self.target_path, f'lrmsd_analysis.png'), dpi=300)
 
     def plot_fnonnat(self, path=None):
         """A function to perform lineplot visualization of fraction of native contacts through the simulation. Reads 'dockq_results.csv' file.
@@ -335,6 +368,7 @@ class Plotter:
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('Fraction of Native Contacts')
+        ax.set_ylim(bottom=0)
 
         ax.set_title('Fraction of Native Contacts')
         fig.savefig(os.path.join(self.target_path, f'fnonnat_analysis.png'), dpi=300)
@@ -654,6 +688,11 @@ class Plotter:
             'PlotiRMSD': {
                 'Run': self._plot_irmsd,
                 'irmsd_path': self._irmsd_path,
+
+            },
+            'PlotlRMSD': {
+                'Run': self._plot_lrmsd,
+                'irmsd_path': self._lrmsd_path,
 
             },
             'PlotFnonnat': {

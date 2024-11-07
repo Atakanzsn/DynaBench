@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 
 #required?
 parser.add_argument('-t', '--trajectory_file', type=str, help="Trajectory file in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
-parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotiRMSD', 'PlotFnonnat', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
+parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotiRMSD','PlotlRMSD', 'PlotFnonnat', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
@@ -74,6 +74,7 @@ parser.add_argument('--int_ene_tpath', type=str, help="CSV data including interf
 parser.add_argument('--sasa_tpath', type=str, help="CSV data path for SASA plot.") #sasa draw table path
 parser.add_argument('--irmsd_tpath', type=str, help="CSV data path for iRMSD plot.") #irmsd draw table path
 parser.add_argument('--fnonnat_tpath', type=str, help="CSV data path for Fnonnat plot.") #fnonnat draw table path
+parser.add_argument('--lrmsd_path', type=str, help="CSV data path for lRMSD plot.") #lrmsd draw table path
 
 
 
@@ -145,7 +146,7 @@ else:
     p_json = False
     if args.commands:
         if 'all_plots' in commands:
-            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne', 'PlotiRMSD', 'PlotFnonnat']
+            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne', 'PlotiRMSD','PlotlRMSD', 'PlotFnonnat']
         else:
             plot_commands = [x for x in commands if 'plot' in x.lower()]
     else:
@@ -369,6 +370,20 @@ def main():
             draw.plot_irmsd(path=irmsd_tpath)
 
             print('Interface RMSD plot is done!\n')
+            print_stars(1)
+            print("\n")
+
+        if 'PlotlRMSD' in plot_commands:
+
+            if p_json:
+                lrmsd_tpath = plot_data['PlotlRMSD']['lrmsd_path']
+
+            else:
+                lrmsd_tpath = args.lrmsd_tpath
+            
+            draw.plot_lrmsd(path=lrmsd_tpath)
+
+            print('Ligand RMSD plot is done!\n')
             print_stars(1)
             print("\n")
 
