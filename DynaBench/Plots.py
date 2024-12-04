@@ -43,9 +43,21 @@ class Plotter:
         self._ene_intf = None
         self._ene_path = None
         self._plot_SASA = False
+        self._sasa_path = None
         self._plot_irmsd = False
+        self._irmsd_path = None
         self._plot_fnonnat = False
+        self._fnonnat_path = None
         self._plot_lrmsd = False
+        self._lrmsd_path = None
+        self._plot_dockq = False
+        self._dockq_path = None
+        self._plot_fnat = False
+        self._fnat_path = None
+        self._plot_dssp = False
+        self._dssp_path = None
+        self._dssp_intf_path = None
+        self._dssp_thereshold = 50.0
 
         sns.set_style('whitegrid')
 
@@ -304,13 +316,14 @@ class Plotter:
         frames_plot = df[frames]
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, irmsds, label=df['mapping'], color=self.chain_colors[0])
+        ax.scatter(frames_plot, irmsds, label=np.unique(df['mapping']), marker='-o')
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('iRMSD (Å)')
         ax.set_ylim(bottom=0)
 
         ax.set_title('iRMSD Analysis')
+        ax.legend(title="Mapping")
         fig.savefig(os.path.join(self.target_path, f'irmsd_analysis.png'), dpi=300)
 
     def plot_lrmsd(self, path=None):
@@ -334,7 +347,7 @@ class Plotter:
         frames_plot = df[frames]
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, lrmsds, label=df['mapping'], color=self.chain_colors[0])
+        ax.plot(frames_plot, lrmsds, label=np.unique(df['mapping']))
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('lRMSD (Å)')
@@ -342,7 +355,39 @@ class Plotter:
 
 
         ax.set_title('lRMSD Analysis')
+        ax.legend(title="Mapping")
         fig.savefig(os.path.join(self.target_path, f'lrmsd_analysis.png'), dpi=300)
+
+    def plot_dockq(self, path=None):
+        """A function to perform lineplot visualization of ligand RMSD through the simulation. Reads 'dockq_results.csv' file.
+        
+        Return: None
+        """
+
+        self._plot_dockq = True
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
+
+        
+        self._dockq_path = path
+        dockq = df['Total']
+        frames = df.columns[0]
+        frames_plot = df[frames]
+
+        fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
+        ax.plot(frames_plot, dockq, label=np.unique(df['mapping']))
+
+        ax.set_xlabel(df.columns[0])
+        ax.set_ylabel('DockQ Score')
+        ax.set_ylim(bottom=0)
+
+        ax.legend(title="Mapping")
+        ax.set_title('DcokQ Score Analysis')
+        fig.savefig(os.path.join(self.target_path, f'dockq_score.png'), dpi=300)
 
     def plot_fnonnat(self, path=None):
         """A function to perform lineplot visualization of fraction of native contacts through the simulation. Reads 'dockq_results.csv' file.
@@ -364,14 +409,45 @@ class Plotter:
         frames_plot=df[frames]    
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, fnonnat, label=df['mapping'], color=self.chain_colors[0])
+        ax.plot(frames_plot, fnonnat, label=np.unique(df['mapping']))
+
+        ax.set_xlabel(df.columns[0])
+        ax.set_ylabel('Fraction of Non-Native Contacts')
+        ax.set_ylim(bottom=0)
+
+        ax.legend(title="Mapping")
+        ax.set_title('Fraction of Non-Native Contacts')
+        fig.savefig(os.path.join(self.target_path, f'fnonnat_analysis.png'), dpi=300)
+
+    def plot_fnat(self, path=None):
+        """A function to perform lineplot visualization of fraction of native contacts through the simulation. Reads 'dockq_results.csv' file.
+        
+        Return: None
+        """
+
+        self._plot_fnat = True
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
+
+        self._fnat_path = path
+        fnonnat = df['fnat']
+        frames = df.columns[0]
+        frames_plot=df[frames]    
+
+        fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
+        ax.plot(frames_plot, fnonnat, label=np.unique(df['mapping']))
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('Fraction of Native Contacts')
         ax.set_ylim(bottom=0)
 
+        ax.legend(title="Mapping")
         ax.set_title('Fraction of Native Contacts')
-        fig.savefig(os.path.join(self.target_path, f'fnonnat_analysis.png'), dpi=300)
+        fig.savefig(os.path.join(self.target_path, f'fnat_analysis.png'), dpi=300)
 
     def plot_biophys(self, path=None):
         """A function to perform barplot core-rim and biophysical classification visualization. Reads 'inetrface_label.csv' file.
@@ -436,7 +512,6 @@ class Plotter:
 
         fig, ax = plt.subplots()
         sns.barplot(x="Interface Text", data=plot_df, hue="Biophysical Type", y="Count", ax=ax, palette=sns.color_palette(self._biophys_palette, 4))
-        # ax.get_xticklabels[3:].set_color("red")
         l = ["Support", "Rim", "Core"]
         for ind, i in enumerate(ax.get_xticklabels()):
             if ax.get_xticklabels()[ind].get_text() in l:
@@ -447,6 +522,80 @@ class Plotter:
 
         plt.title("Biophysical Classification Counts of Residues")
         fig.savefig(os.path.join(self.target_path, f'Biophys_count.png'), dpi=300)
+
+    def plot_DSSP(self, thereshold=50.0, intf_path=None, path=None):
+        self._plot_DSSP = True 
+        self._dssp_thereshold=thereshold
+        
+
+        if intf_path:
+            self.handler.test_inp_path(intf_path)
+            df = pd.read_csv(intf_path)
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "residue_based_tbl.csv"))
+            intf_df = pd.read_csv(os.path.join(self.table_path, "interface_label_perc.csv"))
+
+        self._dssp_path = path  
+        self._dssp_intf_path = intf_path
+
+        time_name = df.columns[0]
+
+        int_df = intf_df[(intf_df["Interface Label"] == 4) | (intf_df["Interface Label"] == 2) | (intf_df["Interface Label"] == 3) & (intf_df["Percentage"] >= thereshold)]
+
+        df = df.loc[:, [time_name,"Chain",'Residue', 'Residue Number', 'Secondary Structure']]
+
+        df["Residue"] = [a + str(b) for a, b in zip(df["Residue"], df["Residue Number"])]
+        mylabels = {
+            'H': 'Alpha Helix',
+            'B': 'Beta Bridge',
+            'E': 'Strand',
+            'G': 'Helix-3',
+            'I': 'Helix-5',
+            'T': 'Turn',
+            'S': 'Bend',
+            'Null': 'Null',
+            'P': 'Coil',
+            'C': 'Coil',
+            '!': 'Chain Break'
+        }
+
+        # Load data
+        interface_groupped = int_df.groupby('Chain')
+
+        groups = df.groupby(['Chain'])
+        fig, axes = plt.subplots(len(groups), 1, figsize=(14, 10))
+        
+        for ax, chain, interface in zip(axes, groups, interface_groupped):
+        
+            chain_df = chain[1]
+
+            intf_ch = interface[1]
+
+            for index,row in chain_df.iterrows():
+                if row['Residue'] not in intf_ch['Residue'].tolist():
+                    chain_df.drop(index, inplace=True)
+
+            sns.scatterplot(data=chain_df, x=chain_df.columns[0], y="Residue", hue="Secondary Structure", palette="deep", marker="s", ax=ax,s=50)
+
+            ax.set_xlabel(f'{time_name}')
+            ax.set_ylabel('Residue')
+            ax.set_title(f"Chain {chain[0][0]}", fontsize=14)
+            ax.tick_params(labelsize=9)
+            ax.get_legend().remove()
+            ax.xaxis.label.set_size(12)
+            ax.yaxis.label.set_size(12)
+            handles, labels = ax.get_legend_handles_labels()
+    
+        # Add labels and legend
+        plt.suptitle("DSSP Analysis for Interface Residues", fontsize=18)
+        fig.legend(handles, [mylabels[i] for i in labels ],ncol=3, loc='upper left') ## ortak legend
+        plt.tight_layout()
+        fig.subplots_adjust(hspace=0.20)
+        fig.savefig(os.path.join(self.target_path, f'dssp_analysis.png'), dpi=300)
 
     def plot_SASA(self, path=None):
         """A function to perform line plot Interface Area in A^2 visualization for each chain and the overall complex. 'Reads residue_based_tbl.csv' file.
@@ -695,9 +844,18 @@ class Plotter:
                 'irmsd_path': self._lrmsd_path,
 
             },
+            'PlotDockQ': {
+                'Run': self._plot_dockq,
+                'irmsd_path': self._dockq_path,
+
+            },
             'PlotFnonnat': {
                 'Run': self._plot_fnonnat,
                 'fnonnat_path': self._fnonnat_path
+            },
+            'PlotFnat': {
+                'Run': self._plot_fnat,
+                'fnat_path': self._fnat_path
             },
             'PlotPairwiseFreq': {
                 'Run': self._bar,
@@ -710,6 +868,12 @@ class Plotter:
                 'interface_table_path': self._ene_intf,
                 'residue_based_table': self._ene_path
                 },
+            'PlotDSSP': {
+                'Run': self._plot_dssp,
+                'dssp_path': self._dssp_path,
+                'dssp_thereshold':self._dssp_thereshold,
+                'dssp_intf_path':self._dssp_intf_path
+            },
 
             }
         json_path = os.path.join(self.job_path, 'plot_params.json')

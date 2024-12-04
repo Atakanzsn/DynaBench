@@ -20,6 +20,7 @@ def run(fhandle, chains, fh2):
             line = _pad_line(line)
             # trick to pick first non-empty character of segid OR empty space
             # [0] on '' gives error, [:1] returns '', with ljust(1) == ' '
+            
             segid = line[72:76].strip()[-1]
             if segid in chains:
                 continue
