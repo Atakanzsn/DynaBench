@@ -16,9 +16,12 @@ import json
 import subprocess
 import time
 from sys import platform
+from shutil import make_archive
+import shutil
 
 freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
+
 
 class dynabench:
     def __init__(self, trajectory_file, stride=1, split_models=True, chains=None, job_name=None, topology_file=None, show_time_as="Frame", timestep=None, time_unit=None, remove_water=True, remove_ions=True):
@@ -163,6 +166,15 @@ class dynabench:
         with open(json_path, 'w+') as ofh:
             json.dump(params, ofh)
 
+        if self.split_models_:
+            models_path = os.path.join(self.job_path, "models")
+            current = os.getcwd()
+            os.chdir(self.job_path)
+            make_archive(self.job_name + "_models", "zip", models_path)
+            os.chdir(current)
+
+            shutil.rmtree(models_path)
+
 
     @staticmethod
     def _split_models(file, job_path):
@@ -194,8 +206,22 @@ class dynabench:
         u = mda.Universe(topology_file, trajectory_file)
         name = output_file.split("\\")[-1].split(".")[0]
 
-        with mda.Writer(output_file, multiframe=True,) as W:
-            for ts in u.trajectory[::stride]:
+        l1 = len(u.trajectory)
+        fr_list = [i.frame for i in u.trajectory]
+
+        def get_stride(s,l):
+            ret = list()
+            ret.append(l[0])
+            for i in l:
+                lr = len(ret)
+                if l.index(i) == ((lr) * s -1):
+                    ret.append(i)
+            return ret
+
+        frames = get_stride(stride,fr_list) 
+        with mda.Writer(output_file, multiframe=True) as W:
+            for t in frames:
+                u.trajectory[t]
                 W.write(u.atoms)
 
         ptm.main2(output_file, chains)
@@ -220,6 +246,7 @@ class dynabench:
         c.quality_tbls_overres()
         c.run_dockq()
 
+
     def run_res_based(self, foldx_path, run_dssp=True):
         """ The function to run Residue Based analyses in one line. Defines Residue Based class and runs the functions in it.
         
@@ -231,6 +258,7 @@ class dynabench:
         c = self.ResidueBased(self.pdb_file, self.target_path, timestep= self.timestep, timeunit = self.time_unit, time_type=self.time_Type, stride=self.stride, job_path=self.job_path, foldx_path=foldx_path, run_dssp=run_dssp)
         c.res_based_tbl()
         c.interface_table()
+
 
     def run_inter_based(self, get_all_hph=False):
         """The function to run Interaction Based analyses in one line. Defines Interaction Based class and runs the functions in it.
@@ -394,30 +422,37 @@ class dynabench:
 
         def run_dockq(self):
             files_path = os.path.join(self.job_path, 'models')
+
             dataf = pd.DataFrame(columns=[self.header_overtime[0], 'Total', 'fnat', 'iRMSD', 'lRMSD','fnonnat', 'clashes', 'mapping'])
             #results = dict()
+            def extract_frame(filename):
+                return int(filename.split('_')[-1].split('.')[0])
+            files = os.listdir(files_path)
+            files = [i for i in files if i.split('.')[-1]=='pdb']
+            files.sort(key=extract_frame)
 
-            for file in os.listdir(files_path):
+            for file in files:
+                
                 frame_num = int(file.split('.')[0].split('_')[-1])
                 if frame_num == 1:
                     native = os.path.join(files_path, file)
 
-                else:
-                    proc = subprocess.Popen(['DockQ', f'{os.path.join(files_path, file)}', f'{native}', '--short'],stdout=subprocess.PIPE)
-                    lines = proc.stdout.readlines()
+                #else:
+                proc = subprocess.Popen(['DockQ', f'{os.path.join(files_path, file)}', f'{native}', '--short'],stdout=subprocess.PIPE)
+                lines = proc.stdout.readlines()
 
-                    for line in lines:
-                        if line.startswith(b'DockQ'):
-                            splitted = line.split(b' ')
-                            dockq = float(splitted[1])
-                            irmsd = float(splitted[3])
-                            lrmsd = float(splitted[5])
-                            fnat = float(splitted[7])
-                            fnonnat = float(splitted[9])
-                            clashes = float(splitted[13])
-                            mapping = str(splitted[15]).rstrip("'")
-                            mapping = mapping.lstrip("b'")
-                            dataf.loc[len(dataf)] = [(frame_num - 1) * self.stride * float(self.timestep), dockq,fnat, irmsd, lrmsd, fnonnat, clashes, mapping]
+                for line in lines:
+                    if line.startswith(b'DockQ'):
+                        splitted = line.split(b' ')
+                        dockq = float(splitted[1])
+                        irmsd = float(splitted[3])
+                        lrmsd = float(splitted[5])
+                        fnat = float(splitted[7])
+                        fnonnat = float(splitted[9])
+                        clashes = float(splitted[13])
+                        mapping = str(splitted[15]).rstrip("'")
+                        mapping = mapping.lstrip("b'")
+                        dataf.loc[len(dataf)] = [(frame_num-1) * self.stride * float(self.timestep), dockq,fnat, irmsd, lrmsd, fnonnat, clashes, mapping]
 
             dataf = dataf.sort_values(self.header_overtime[0])
             dataf['fnonnat'] = (dataf['fnonnat'] - dataf['fnonnat'].min())/(dataf['fnonnat'].max() - dataf['fnonnat'].min())
@@ -640,24 +675,25 @@ class dynabench:
             os.chdir(models_path)
             
             for file in os.listdir(models_path):
-
-                _replace_nonstandards_foldx(file, models_path)
+                if file.split('.')[-1] == 'pdb':
+                    _replace_nonstandards_foldx(file, models_path)
 
             os.chdir(current)
 
-            with open(os.path.join(job_path, 'pdb_list.out'), 'w+') as fh:
+            """with open(os.path.join(job_path, 'pdb_list.out'), 'w+') as fh:
                 for file in os.listdir(models_path):
-                    fh.write(f"{file}\n")
+                    fh.write(f"{file}")"""
             
-            
-            r = subprocess.run([f"{foldx_exe_path}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb-dir={models_path}', f"--pdb-list={os.path.join(job_path,'pdb_list.out')}"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+            os.chdir(models_path)
+            f_name = foldx_exe_path.split('\\')[-1]
+            f_new_path = os.path.join(models_path,f_name)
+            shutil.copyfile(foldx_exe_path, f_new_path)
+            for i in os.listdir(models_path):
+                if file.split('.')[-1] == 'pdb':
+                    subprocess.run([f"{f_name}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb={i}'], stdout=subprocess.DEVNULL)
+            os.chdir(current)
 
-            if b"Aborting" in r.stdout:
-                print("Trying Again...")
-                time.sleep(1)
-                subprocess.run([f"{foldx_exe_path}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb-dir={models_path}', f"--pdb-list={os.path.join(job_path,'pdb_list.out')}"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-
-            os.remove(os.path.join(job_path, 'pdb_list.out'))
+            os.remove(f_new_path)
 
             #read outputs
 
@@ -698,9 +734,7 @@ class dynabench:
 
             def extract_frame(filename):
                 return int(filename.split('_')[-1].split('.')[0])
-        
-            #job_path = "C://Users//ataka//Desktop//3F1P_dt05_time_ns_stride10//"
-            
+                    
             models_path = os.path.join(job_path, 'models//')    
             pdb_files = os.listdir(models_path)
             pdb_files.sort(key=extract_frame)
@@ -715,7 +749,6 @@ class dynabench:
             for file in pdb_files:
             
                 file_path = os.path.join(models_path, file)
-                #print("File Path: ", file_path)
 
                 with open(file_path, 'r') as fh:
                     data = fh.read()
@@ -804,6 +837,35 @@ class dynabench:
             file.write(",".join(self.header))
 
             i = 0
+
+            chains = freesasa.calc(self.rasc_array[0]).residueAreas().keys()
+
+            #print(chains)
+            chain_len = len(chains)
+
+            rasm_chained = [(self.rasm_array[i], self.rasm_array[i+1]) for i in range(0, len(self.rasm_array)-1, chain_len)]
+            #print(rasm_chained)
+
+            l = 0
+
+            for i, (rasm_obj, rasc_obj) in enumerate(zip(rasm_chained, rasc_array)):
+                model_index = i
+                rasm_list = [freesasa.calc(a).residueAreas() for  a in rasm_obj] #list of dicts
+                #print(rasm_list)
+                rasm_dict = rasm_list[0]
+                for i in range(1,len(rasm_list)):
+                    rasm_dict.update(rasm_list[i])
+                
+                rasc_dict = freesasa.calc(rasc_obj).residueAreas()
+                chain_names = rasc_dict.keys()
+                
+                for chain in chain_names:
+                    rasm_chain = rasm_dict[chain]
+                    rasc_chain = rasc_dict[chain]
+                    #print(rasm_chain)
+                    #print(rasc_chain)
+
+
             for frame, frame_obj in enumerate(self.rasac_array):  # stride'ı frame'i düzenlemek için kullan
                 rasc_res_frame = freesasa.calc(frame_obj).residueAreas()  # first, get the first frame from rasc
 

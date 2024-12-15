@@ -220,7 +220,7 @@ def main():
         mol = dynabench(trajectory_file=trajectory_file, stride=stride, split_models=split_models, chains=chains, job_name=job_name, topology_file=topology_file,
                         show_time_as=time_as, timestep=timestep, time_unit=timeunit, remove_water=remove_water, remove_ions=remove_ions)
 
-        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\Trajectory File: {trajectory_file}\n\tTopology File: {topology_file}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
+        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\tTrajectory File: {trajectory_file}\n\tTopology File: {topology_file}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
         print_stars(1)
         print("\n")
 

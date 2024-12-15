@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from DynaBench.handling import tables_errors
 import json
+from matplotlib import cm
+
 
 
 
@@ -189,13 +191,16 @@ class Plotter:
         
         def get_jumpseq(data):
             sequence = list()
+            res_list = data["Residue Number"].tolist()
             for index,row in data.iterrows():
                 resnum = row['Residue Number']
-                if resnum == 0:
-                     resnum = 1
-
-                while len(sequence) < resnum - 1:
-                    sequence.append('.')
+                
+                res_num_idx = res_list.index(resnum)
+                latter = res_list[res_num_idx-1]
+                diff = resnum - latter
+                if diff != 1:
+                    for i in range(diff-1):
+                        sequence.append('.')
                 sequence.append(resnum)
             return sequence
         
@@ -213,7 +218,12 @@ class Plotter:
 
         for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
             data = groups.get_group(x)
-            if data.iloc[0]['Residue Number'] != 1 or data.iloc[-1]['Residue Number'] != len(data): #check the jump
+            first_resnum = data.iloc[0]['Residue Number']
+            last_resnum = data.iloc[-1]['Residue Number']
+            resnum_len = last_resnum - first_resnum
+
+            if resnum_len+1 != len(data): #check the jump
+
                 sequence = get_jumpseq(data)
 
                 ax.set_xlim([1,len(sequence)])
@@ -256,7 +266,7 @@ class Plotter:
                         idxs.append(idx + 1)
 
                 for el in overall_list:
-                    if len(el) > 1:
+                    if len(el) > 1:                        
                         ax.plot(el[0]["Residue Number"], el[0]["RMSF"], '-o', markevery=el[1], markersize=3.5,
                             color=self.chain_colors[ind], linewidth=3)
                         ax.plot(el[0]["Residue Number"], el[0]["RMSF"], 'o', markevery=el[1],
@@ -272,16 +282,21 @@ class Plotter:
 
             else:
                 if intf: #if no jmp, markers, intf yes
-                    int_data = g2.get_group(x)
-                    markers = [int(x[3:]) -1 for x in int_data["Residue"]]
-                    
 
-                    ax.plot(data["Residue Number"], data["RMSF"], '-o', markevery=markers, markersize=3.5,
+                    int_data = g2.get_group(x)
+                    
+                    res_list = int_data["Residue"].tolist()
+                    markerss = [int(x[3:]) -1 for x in res_list]
+                    l = data["Residue Number"].tolist()
+                    markers = [l.index(i) for i in markerss]
+
+                    ax.plot(data["Residue Number"], data["RMSF"],markevery=markers, markersize=3.5,
                             color=self.chain_colors[ind])
                     ax.plot(data["Residue Number"], data["RMSF"], 'o', markevery=markers,
                             label='Interface Residues', markersize=3.5, color="red")  #jump yok intf var
                     
                 else:
+                    
                     ax.plot(data["Residue Number"], data["RMSF"],
                             color=self.chain_colors[ind]) #jump yok intf yok
                 
@@ -311,13 +326,15 @@ class Plotter:
 
         
         self._irmsd_path = path
-        irmsds = df['iRMSD']
-        frames = df.columns[0]
-        frames_plot = df[frames]
+        
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.scatter(frames_plot, irmsds, label=np.unique(df['mapping']), marker='-o')
 
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "iRMSD",data=data, label=i)
+        
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('iRMSD (Å)')
         ax.set_ylim(bottom=0)
@@ -342,12 +359,14 @@ class Plotter:
 
         
         self._lrmsd_path = path
-        lrmsds = df['lRMSD']
-        frames = df.columns[0]
-        frames_plot = df[frames]
+
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, lrmsds, label=np.unique(df['mapping']))
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "lRMSD",data=data, label=i)
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('lRMSD (Å)')
@@ -374,19 +393,20 @@ class Plotter:
 
         
         self._dockq_path = path
-        dockq = df['Total']
-        frames = df.columns[0]
-        frames_plot = df[frames]
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, dockq, label=np.unique(df['mapping']))
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "Total", data=data, label=i)
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('DockQ Score')
         ax.set_ylim(bottom=0)
 
         ax.legend(title="Mapping")
-        ax.set_title('DcokQ Score Analysis')
+        ax.set_title('DockQ Score Analysis')
         fig.savefig(os.path.join(self.target_path, f'dockq_score.png'), dpi=300)
 
     def plot_fnonnat(self, path=None):
@@ -404,12 +424,13 @@ class Plotter:
             df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
 
         self._fnonnat_path = path
-        fnonnat = df['fnonnat']
-        frames = df.columns[0]
-        frames_plot=df[frames]    
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, fnonnat, label=np.unique(df['mapping']))
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "fnonnat",data=data, label=i)
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('Fraction of Non-Native Contacts')
@@ -434,12 +455,13 @@ class Plotter:
             df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
 
         self._fnat_path = path
-        fnonnat = df['fnat']
-        frames = df.columns[0]
-        frames_plot=df[frames]    
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, fnonnat, label=np.unique(df['mapping']))
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "fnat",data=data, label=i)
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('Fraction of Native Contacts')
@@ -750,7 +772,7 @@ class Plotter:
 
             plt.xticks(rotation='vertical')
 
-            plt.xticks(fontsize=10, fontweight='bold', rotation=85)
+            plt.xticks(fontsize=12, fontweight='bold', rotation=85)
             plt.yticks([x for x in range(0,101,10)], fontsize=13, fontweight='bold')
 
             plt.title(f"General {x.strip('bond').capitalize()}-bond Percentage to Simulation Time", fontweight='bold', size=20)
