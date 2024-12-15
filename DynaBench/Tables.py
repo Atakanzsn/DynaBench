@@ -14,13 +14,17 @@ import DynaBench.pdb_tool_modified as ptm
 import random
 import json
 import subprocess
+import time
+from sys import platform
+from shutil import make_archive
 import shutil
 
 freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
 
+
 class dynabench:
-    def __init__(self, trajectory_file, stride=1, split_models=False, chains=None, job_name=None, topology_file=None, show_time_as="Frame", timestep=None, time_unit=None, remove_water=True, remove_ions=True):
+    def __init__(self, trajectory_file, stride=1, split_models=True, chains=None, job_name=None, topology_file=None, show_time_as="Frame", timestep=None, time_unit=None, remove_water=True, remove_ions=True):
         """A class to perform Quality Control, Residue Based and Interaction Based analyses on MD simulations. Results of the analyses are printed as .csv files under a folder named 'tables'. MD outputs with any exception are transformed to .pdb file and the analyses are run through this .pdb file. Number of frames that will be fetched from initial input file to be analysed can be set by stride value.
         
         Keyword arguments:
@@ -36,7 +40,7 @@ class dynabench:
         if timestep is None:
             self.timestep = 1.0
         else:
-            self.timestep = timestep 
+            self.timestep = timestep
 
         #params
         self.time_Type = show_time_as
@@ -52,6 +56,7 @@ class dynabench:
         self.rmsd_data= None
         self.get_all_hph = None
         self.foldx_path = None
+        self.dssp_flag = False
         self.remove_water = remove_water
         self.remove_ions = remove_ions
 
@@ -87,7 +92,7 @@ class dynabench:
                 remove_chains.append('V')
             if remove_ions:
                 remove_chains.append('S')
-            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.topology_file, out_file, stride, trajectory_file, chains=remove_chains))
+            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.trajectory_file_, out_file, stride, self.topology_file, chains=remove_chains))
 
         elif file_ext == 'pdb':
             if self.stride != 1:
@@ -147,7 +152,8 @@ class dynabench:
                 },
             'ResidueBased':{
                 'Run': self.rb_flag,
-                'FoldX_path': self.foldx_path
+                'FoldX_path': self.foldx_path,
+                'Run_DSSP': self.dssp_flag
             },
             'InteractionBased': { 
                 'Run': self.ib_flag,
@@ -159,6 +165,15 @@ class dynabench:
         json_path = os.path.join(self.job_path, 'table_params.json')
         with open(json_path, 'w+') as ofh:
             json.dump(params, ofh)
+
+        if self.split_models_:
+            models_path = os.path.join(self.job_path, "models")
+            current = os.getcwd()
+            os.chdir(self.job_path)
+            make_archive(self.job_name + "_models", "zip", models_path)
+            os.chdir(current)
+
+            shutil.rmtree(models_path)
 
 
     @staticmethod
@@ -179,7 +194,7 @@ class dynabench:
         os.chdir(now)
 
     @staticmethod
-    def _preprocess_dcd(inp_pdb, output_file, stride, ab_file, chains=list):
+    def _preprocess_dcd(trajectory_file, output_file, stride, topology_file, chains=list):
         """ Transforms input trajectory file into the .pdb file for given stride value.
         
         Keyword arguments:
@@ -188,11 +203,25 @@ class dynabench:
         stride -- Number of frames to be skipped.
         Return: None
         """
-        u = mda.Universe(inp_pdb, ab_file)
+        u = mda.Universe(topology_file, trajectory_file)
         name = output_file.split("\\")[-1].split(".")[0]
 
-        with mda.Writer(output_file, u.atoms.n_atoms) as W:
-            for ts in u.trajectory[::stride]:
+        l1 = len(u.trajectory)
+        fr_list = [i.frame for i in u.trajectory]
+
+        def get_stride(s,l):
+            ret = list()
+            ret.append(l[0])
+            for i in l:
+                lr = len(ret)
+                if l.index(i) == ((lr) * s -1):
+                    ret.append(i)
+            return ret
+
+        frames = get_stride(stride,fr_list) 
+        with mda.Writer(output_file, multiframe=True) as W:
+            for t in frames:
+                u.trajectory[t]
                 W.write(u.atoms)
 
         ptm.main2(output_file, chains)
@@ -217,16 +246,19 @@ class dynabench:
         c.quality_tbls_overres()
         c.run_dockq()
 
-    def run_res_based(self, foldx_path):
+
+    def run_res_based(self, foldx_path, run_dssp=True):
         """ The function to run Residue Based analyses in one line. Defines Residue Based class and runs the functions in it.
         
         Return: None
         """
         self.foldx_path = foldx_path
         self.rb_flag = True
-        c = self.ResidueBased(self.pdb_file, self.target_path, timestep= self.timestep, timeunit = self.time_unit, time_type=self.time_Type, stride=self.stride, job_path=self.job_path, foldx_path=foldx_path)
+        self.dssp_flag = run_dssp
+        c = self.ResidueBased(self.pdb_file, self.target_path, timestep= self.timestep, timeunit = self.time_unit, time_type=self.time_Type, stride=self.stride, job_path=self.job_path, foldx_path=foldx_path, run_dssp=run_dssp)
         c.res_based_tbl()
         c.interface_table()
+
 
     def run_inter_based(self, get_all_hph=False):
         """The function to run Interaction Based analyses in one line. Defines Interaction Based class and runs the functions in it.
@@ -253,7 +285,7 @@ class dynabench:
             self.timestep = timestep
             self.job_path = job_path
             if time_type == 'Time':
-                self.u = mda.Universe(pdb_file, dt=timestep)
+                self.u = mda.Universe(pdb_file)
                 if time_unit.lower() == 'ns' or time_unit.lower() == 'nanosecond':
                     self.u.trajectory.units = {'time':'nanosecond', 'length': 'Angstrom'}
             else:
@@ -278,6 +310,9 @@ class dynabench:
             else:
                 self.header_overtime = ["Frame"]
             self.header_overres = ["Molecule", "Residue Number", "RMSF"]
+
+            for i, ts in enumerate(self.u.trajectory):
+                ts.time = i * timestep
 
         #
         # Private Methods
@@ -387,31 +422,45 @@ class dynabench:
 
         def run_dockq(self):
             files_path = os.path.join(self.job_path, 'models')
-            dataf = pd.DataFrame(columns=[self.header_overtime[0], 'Total', 'iRMSD', 'lRMSD','fnonnat', 'clashes', 'mapping'])
-            #results = dict()
 
-            for file in os.listdir(files_path):
+            dataf = pd.DataFrame(columns=[self.header_overtime[0], 'Total', 'fnat', 'iRMSD', 'lRMSD','fnonnat', 'clashes', 'mapping'])
+            #results = dict()
+            def extract_frame(filename):
+                return int(filename.split('_')[-1].split('.')[0])
+            files = os.listdir(files_path)
+            files = [i for i in files if i.split('.')[-1]=='pdb']
+            files.sort(key=extract_frame)
+
+            for file in files:
+                
                 frame_num = int(file.split('.')[0].split('_')[-1])
                 if frame_num == 1:
                     native = os.path.join(files_path, file)
 
-                else:
-                    proc = subprocess.Popen(['DockQ', f'{os.path.join(files_path, file)}', f'{native}', '--short'],stdout=subprocess.PIPE)
-                    lines = proc.stdout.readlines()
+                #else:
+                proc = subprocess.Popen(['DockQ', f'{os.path.join(files_path, file)}', f'{native}', '--short'],stdout=subprocess.PIPE)
+                lines = proc.stdout.readlines()
 
-                    for line in lines:
-                        if line.startswith(b'DockQ'):
-                            splitted = line.split(b' ')
-                            dockq = float(splitted[1])
-                            irmsd = float(splitted[3])
-                            lrmsd = float(splitted[5])
-                            fnonnat = float(splitted[9])
-                            clashes = float(splitted[13])
-                            mapping = str(splitted[15]).rstrip("'")
-                            mapping = mapping.lstrip("b'")
-                            dataf.loc[len(dataf)] = [(frame_num - 1) * self.stride * float(self.timestep), dockq, irmsd, lrmsd, fnonnat, clashes, mapping]
+                for line in lines:
+                    if line.startswith(b'DockQ'):
+                        splitted = line.split(b' ')
+                        dockq = float(splitted[1])
+                        irmsd = float(splitted[3])
+                        lrmsd = float(splitted[5])
+                        fnat = float(splitted[7])
+                        fnonnat = float(splitted[9])
+                        clashes = float(splitted[13])
+                        mapping = str(splitted[15]).rstrip("'")
+                        mapping = mapping.lstrip("b'")
+                        dataf.loc[len(dataf)] = [(frame_num-1) * self.stride * float(self.timestep), dockq,fnat, irmsd, lrmsd, fnonnat, clashes, mapping]
 
             dataf = dataf.sort_values(self.header_overtime[0])
+            dataf['fnonnat'] = (dataf['fnonnat'] - dataf['fnonnat'].min())/(dataf['fnonnat'].max() - dataf['fnonnat'].min())
+            dataf['fnonnat'] = [round(x, 3) for x in dataf['fnonnat']]
+            dataf['Total'] = (dataf['Total'] - dataf['Total'].min())/(dataf['Total'].max() - dataf['Total'].min())
+            dataf['Total'] = [round(x, 3) for x in dataf['Total']]
+            dataf['fnat'] = (dataf['fnat'] - dataf['fnat'].min())/(dataf['fnat'].max() - dataf['fnat'].min())
+            dataf['fnat'] = [round(x, 3) for x in dataf['fnat']]
             dataf.to_csv(os.path.join(self.target_path, 'dockq_results.csv'), index=False)
 
         def quality_tbls_overres(self):
@@ -436,7 +485,7 @@ class dynabench:
             file.close()
 
     class ResidueBased:
-        def __init__(self, pdb_path, target_path, time_type, timestep, timeunit, stride, job_path, foldx_path):
+        def __init__(self, pdb_path, target_path, time_type, timestep, timeunit, stride, job_path, foldx_path, run_dssp):
             """ A class to perform Residue Based analyses such as core-rim, and  biophysical type classifications; Van der Waals, electrostatic, desolvation, and hydrogen bond energies either between same-chain or different chain residues. Also prints the interface class that residues had with the highest percentage for all simulation time. Initially calculates rASA values and residue energies.
             
             Keyword arguments:
@@ -449,6 +498,7 @@ class dynabench:
             self.timeunit = timeunit
             self.stride = stride
             self.foldx_path=foldx_path
+            self.run_dssp = run_dssp               
 
             if self.time_type and 'Time' in self.time_type:
                 if self.timeunit.lower() == 'ns' or self.timeunit.lower() == 'nanosecond':
@@ -457,9 +507,19 @@ class dynabench:
                 t = 'Frame'
 
             self.target_path = target_path
-            self.header = [f"{t}", "Chain", "Residue", "Residue Number", "rASAc", "rASAm", "delta rASA", "SASA",
+            self.header = [f"{t}", "Chain", "Residue", "Residue Number","rASAc", "rASAm", "delta rASA", "SASA",
                            "Interface Label", "Residue Biophysical Type", "Backbone Hbond Energy","Sidechain Hbond Energy", "Van der Waals Energy", "Electrostatic Energy",
                            "Total Residue Energy","\n"]
+            
+            if self.run_dssp:
+                if platform == 'win32':
+                    handler.check_wsl()
+                
+                handler.check_dssp(platform)
+                self.header.insert(-1, 'Secondary Structure')
+
+                self._run_dssp(job_path=job_path)
+                self.dssp_data = self._read_dssp(job_path=job_path)
 
             self.rasam_array = freesasa.structureArray(pdb_path,
                                                        {'separate-chains': True,
@@ -561,28 +621,30 @@ class dynabench:
 
                     self.hbond = self.bb_hbond + self.sc_hbond
 
-            def _replace_nonstandards_foldx(file_path, models_path):
+            def _replace_nonstandards_foldx(file, models_path):
+                file_path = os.path.join(models_path, file)
+                frame = file.split('_')[-1].split('.')[0]
                 with open(file_path, 'r') as file:
                     content = file.read()
                 f_name = file_path.split(".pdb")[0]
                 if "HID" in content:
-                    os.system(f"pdb_rplresname -HID:H2S {file_path} >{f_name}_rpl_1.pdb")
-                    os.system(f"pdb_rplresname -HIE:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+                    os.system(f"pdb_rplresname -HID:H2S {file_path} >{f_name}_rpl__.pdb")
+                    os.system(f"pdb_rplresname -HIE:H1S {f_name}_rpl__.pdb >{f_name}_rpl_{frame}.pdb")
 
                 elif "HSD" in content:
-                    os.system(f"pdb_rplresname -HSD:H2S {file_path} >{f_name}_rpl_1.pdb")
-                    os.system(f"pdb_rplresname -HSE:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+                    os.system(f"pdb_rplresname -HSD:H2S {file_path} >{f_name}_rpl__.pdb")
+                    os.system(f"pdb_rplresname -HSE:H1S {f_name}_rpl__.pdb >{f_name}_rpl_{frame}.pdb")
 
                 elif "HISA" in content:
-                    os.system(f"pdb_rplresname -HISA:H2S {file_path} >{f_name}_rpl_1.pdb")
-                    os.system(f"pdb_rplresname -HISB:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+                    os.system(f"pdb_rplresname -HISA:H2S {file_path} >{f_name}_rpl__.pdb")
+                    os.system(f"pdb_rplresname -HISB:H1S {f_name}_rpl__.pdb >{f_name}_rpl_{frame}.pdb")
 
                 elif "HISD" in content:
-                    os.system(f"pdb_rplresname -HISD:H2S {file_path} >{f_name}_rpl_1.pdb")
-                    os.system(f"pdb_rplresname -HISE:H1S {f_name}_rpl_1.pdb >{f_name}_rpl.pdb")
+                    os.system(f"pdb_rplresname -HISD:H2S {file_path} >{f_name}_rpl__.pdb")
+                    os.system(f"pdb_rplresname -HISE:H1S {f_name}_rpl__.pdb >{f_name}_rpl_{frame}.pdb")
 
-                if os.path.exists(os.path.join(models_path, f"{f_name}_rpl_1.pdb")):
-                    os.remove(f"{f_name}_rpl_1.pdb")
+                if os.path.exists(os.path.join(models_path, f"{f_name}_rpl__.pdb")):
+                    os.remove(f"{f_name}_rpl__.pdb")
 
                     os.remove(file_path)
 
@@ -598,8 +660,12 @@ class dynabench:
 
             if not os.path.exists(os.path.join(job_path, 'models')):
                 os.mkdir(os.path.join(job_path, 'models'))
+                os.system(f"pdb_splitmodel {inp_path}")
+
+            if not os.path.exists(os.path.join(job_path, 'foldx_outputs')):
+
             
-            os.mkdir(os.path.join(job_path, 'foldx_outputs'))
+                os.mkdir(os.path.join(job_path, 'foldx_outputs'))
 
 
             models_path = os.path.join(job_path, 'models')
@@ -608,21 +674,26 @@ class dynabench:
             
             os.chdir(models_path)
             
-            os.system(f"pdb_splitmodel {inp_path}")
-
             for file in os.listdir(models_path):
-
-                _replace_nonstandards_foldx(file, models_path)
+                if file.split('.')[-1] == 'pdb':
+                    _replace_nonstandards_foldx(file, models_path)
 
             os.chdir(current)
 
-            with open(os.path.join(job_path, 'pdb_list.out'), 'w+') as fh:
+            """with open(os.path.join(job_path, 'pdb_list.out'), 'w+') as fh:
                 for file in os.listdir(models_path):
-                    fh.write(f"{file}\n")
+                    fh.write(f"{file}")"""
+            
+            os.chdir(models_path)
+            f_name = foldx_exe_path.split('\\')[-1]
+            f_new_path = os.path.join(models_path,f_name)
+            shutil.copyfile(foldx_exe_path, f_new_path)
+            for i in os.listdir(models_path):
+                if file.split('.')[-1] == 'pdb':
+                    subprocess.run([f"{f_name}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb={i}'], stdout=subprocess.DEVNULL)
+            os.chdir(current)
 
-            subprocess.run([f"{foldx_exe_path}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb-dir={models_path}', f"--pdb-list={os.path.join(job_path,'pdb_list.out')}"], stdout=subprocess.DEVNULL)
-
-            os.remove(os.path.join(job_path, 'pdb_list.out'))
+            os.remove(f_new_path)
 
             #read outputs
 
@@ -658,6 +729,98 @@ class dynabench:
 
             return result
 
+        @staticmethod
+        def _run_dssp(job_path):
+
+            def extract_frame(filename):
+                return int(filename.split('_')[-1].split('.')[0])
+                    
+            models_path = os.path.join(job_path, 'models//')    
+            pdb_files = os.listdir(models_path)
+            pdb_files.sort(key=extract_frame)
+            
+            output_folder = 'dssp_results'
+            output_folder_path = os.path.join(job_path, output_folder)
+            
+            if not os.path.exists(output_folder_path):
+                os.mkdir(output_folder_path)
+            # otuput foler path control et, yoksa yarat
+            
+            for file in pdb_files:
+            
+                file_path = os.path.join(models_path, file)
+
+                with open(file_path, 'r') as fh:
+                    data = fh.read()
+
+                # Debugging: Show the original data
+                file_name = file.split('.')[0]
+
+                # Add the new line if necessary
+                if not data.startswith('CRYST1'):
+                    new_content = 'CRYST1\n' + data
+                    # Rewrite the entire file
+                    new_path = os.path.join(output_folder_path, file)
+                    with open(new_path, 'w+') as fh:
+                        fh.write(new_content)
+
+                commands = ['mkdssp','-i']
+                output_path = os.path.join(output_folder_path, f"{file_name}.dssp")
+                
+                if platform == 'win32':
+                    commands.insert(0,'wsl')
+                    new_path2 = new_path.replace('C:', '//mnt//c')
+                    output_path = output_path.replace('C:', '//mnt//c')
+                    output_path = output_path.replace("\\", '//')
+                    new_path2 = new_path2.replace("\\", '//')
+                    
+                try:
+                    commands.append(new_path2)
+                except:
+                    commands.append(new_path)
+                commands.append('-o')
+                commands.append(output_path)
+                #print(commands)
+                subprocess.run(commands)
+
+                try:
+                    os.remove(new_path2)
+                except:
+                    os.remove(new_path)
+                    
+
+        @staticmethod
+        def _read_dssp(job_path):
+            path = os.path.join(job_path, 'dssp_results')
+            df = pd.DataFrame(columns=['frame', 'resnum', 'chain', 'resname', 'secstruc'])
+            for file in os.listdir(path):
+                frame = file.split('.')[0].split('_')[-1]
+                file_path = os.path.join(path, file)
+                with open(file_path, 'r+') as fh:
+                    flag = False
+                    for line in fh:
+                        if flag:
+                            resnum = line[6:11]
+                            resnum = resnum.strip(' ')
+                            try:
+                                int(resnum)
+                            except: continue
+
+                            chain = line[11]
+                            resname = line[13]
+                            sec_struc = line[16]
+                            if sec_struc==" ":
+                                sec_struc = 'Null'
+                            row = [int(frame), str(resnum), chain, resname, sec_struc]
+                            
+                            df.loc[len(df)] = row
+
+                            
+                            
+                        if line.startswith('  #'):
+                            flag = True
+            return df
+
         #
         # Public Methods
         #
@@ -674,6 +837,35 @@ class dynabench:
             file.write(",".join(self.header))
 
             i = 0
+
+            chains = freesasa.calc(self.rasc_array[0]).residueAreas().keys()
+
+            #print(chains)
+            chain_len = len(chains)
+
+            rasm_chained = [(self.rasm_array[i], self.rasm_array[i+1]) for i in range(0, len(self.rasm_array)-1, chain_len)]
+            #print(rasm_chained)
+
+            l = 0
+
+            for i, (rasm_obj, rasc_obj) in enumerate(zip(rasm_chained, rasc_array)):
+                model_index = i
+                rasm_list = [freesasa.calc(a).residueAreas() for  a in rasm_obj] #list of dicts
+                #print(rasm_list)
+                rasm_dict = rasm_list[0]
+                for i in range(1,len(rasm_list)):
+                    rasm_dict.update(rasm_list[i])
+                
+                rasc_dict = freesasa.calc(rasc_obj).residueAreas()
+                chain_names = rasc_dict.keys()
+                
+                for chain in chain_names:
+                    rasm_chain = rasm_dict[chain]
+                    rasc_chain = rasc_dict[chain]
+                    #print(rasm_chain)
+                    #print(rasc_chain)
+
+
             for frame, frame_obj in enumerate(self.rasac_array):  # stride'ı frame'i düzenlemek için kullan
                 rasc_res_frame = freesasa.calc(frame_obj).residueAreas()  # first, get the first frame from rasc
 
@@ -709,10 +901,22 @@ class dynabench:
                             continue
                         
                         if self.time_type == 'Time':
-                            t = frame * self.stride * float(self.timestep)
+                            t = int(frame) * int(self.stride) * float(self.timestep)
                         else:
                             t = frame * self.stride
-                        row = f"{t},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{f'{nbsa:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
+                        
+                        row = f"{round(t,3)},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{f'{nbsa:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
+
+                        if self.run_dssp:
+                            sec_structure = self.dssp_data.loc[(self.dssp_data['frame']==int(frame)+1)&(self.dssp_data['resnum']==str(resnum))&(self.dssp_data['chain']==key), 'secstruc']
+                            mlist = sec_structure.tolist()
+
+                            row = row.rstrip("\n")
+                            try:
+                                row += f",{mlist[0]}\n"
+                            except IndexError:
+                                row += f",Null\n"
+                            
 
                         file.write(row)
             file.close()
@@ -865,9 +1069,9 @@ class dynabench:
                 frame = tup[1]
 
                 if t != 'Frame,':
-                    frame = float(frame) * self.timestep * self.stride
+                    frame = int(frame) * float(self.timestep) * int(self.stride)
 
-                df.insert(0, t.rstrip(','), frame)
+                df.insert(0, t.rstrip(','), round(frame,3))
                 df.to_csv(handle, index=False, mode="w+", header=False)
             handle.close()
 

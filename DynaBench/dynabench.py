@@ -44,7 +44,7 @@ parser = argparse.ArgumentParser()
 
 #required?
 parser.add_argument('-t', '--trajectory_file', type=str, help="Trajectory file in .dcd or .pdb formats. If .dcd, pelase provide topology file with '--topology_file' command.")
-parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotiRMSD','PlotlRMSD', 'PlotFnonnat', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
+parser.add_argument('-c', '--commands', type=str, help="Commands to run. You can provide multiple run commands, in comma seperated form. Choises are:\n'all_analysis', 'QualityControl', 'ResidueBased', 'InteractionBased' for analysis and,\n 'all_plots', 'PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotiRMSD','PlotlRMSD','PlotDockQ', 'PlotFnonnat', 'PlotFnat', 'PlotPairwiseFreq', 'PlotBiophys','PlotDSSP', 'PlotSASA', 'PlotResEne' for visualization.") #virgül seperated al, kontrol et
 
 #job_name
 parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if null, DynaBench will generate a name from input file.')
@@ -52,6 +52,7 @@ parser.add_argument('-j', '--job_name', type=str, help='The name of the job, if 
 parser.add_argument('--remove_water', type=bool, help="Removes water if True. Default is True.")
 parser.add_argument('--remove_ions', type=bool, help="Removes ions if True. Default is True.")
 parser.add_argument('--foldx_path', type=str, help="Absolute path of FoldX executable.")
+parser.add_argument('--run_dssp', type=bool, help="Runs DSSP analysis within the Residue Based analyses if True. Default is True.")
 parser.add_argument('--time_as', type=str, help="'Frame' or 'Time'. If Time, you should provide time unit with --timeunit command.")
 parser.add_argument('--timestep', type=str, help="Timestep value of simulation.")
 parser.add_argument('--timeunit', type=str, help="Nanosecond or ns is acceptable for now.")
@@ -74,7 +75,12 @@ parser.add_argument('--int_ene_tpath', type=str, help="CSV data including interf
 parser.add_argument('--sasa_tpath', type=str, help="CSV data path for SASA plot.") #sasa draw table path
 parser.add_argument('--irmsd_tpath', type=str, help="CSV data path for iRMSD plot.") #irmsd draw table path
 parser.add_argument('--fnonnat_tpath', type=str, help="CSV data path for Fnonnat plot.") #fnonnat draw table path
-parser.add_argument('--lrmsd_path', type=str, help="CSV data path for lRMSD plot.") #lrmsd draw table path
+parser.add_argument('--fnat_tpath', type=str, help="CSV data path for Fnat plot.") #fnat draw table path
+parser.add_argument('--dssp_tpath', type=str, help="CSV data path for dssp plot.") #fnonnat draw table path
+parser.add_argument('--dssp_thereshold', type=float, help="Thereshold value for interface residue selection in DSSP analysis. Default is 50.")
+parser.add_argument('--dssp_intf_tpath', type=str, help="CSV data of interface residues path for dssp plot.") 
+parser.add_argument('--lrmsd_tpath', type=str, help="CSV data path for lRMSD plot.") #lrmsd draw table path
+parser.add_argument('--dockq_tpath', type=str, help="CSV data path for DockQ Score plot.") #dockq draw table path
 
 
 
@@ -128,25 +134,33 @@ if args.plot_json:
         plot_commands.append('PlotRG')
     if plot_data['PlotRMSF']['Run']:
         plot_commands.append('PlotRMSF')
-    if plot_data['PlotPairwiseFreq']['Run']:
-        plot_commands.append('PlotPairwiseFreq')
     if plot_data['PlotBiophys']['Run']:
         plot_commands.append('PlotBiophys')
-    if plot_data['PlotResEne']['Run']:
-        plot_commands.append('PlotResEne')
     if plot_data['PlotSASA']['Run']:
         plot_commands.append('PlotSASA')
     if plot_data['PlotiRMSD']['Run']:
         plot_commands.append('PlotiRMSD')
+    if plot_data['PlotlRMSD']['Run']:
+        plot_commands.append('PlotlRMSD')
+    if plot_data['PlotDockQ']['Run']:
+        plot_commands.append('PlotDockQ')
     if plot_data['PlotFnonnat']['Run']:
         plot_commands.append('PlotFnonnat')
+    if plot_data['PlotFnat']['Run']:
+        plot_commands.append('PlotFnat')
+    if plot_data['PlotPairwiseFreq']['Run']:
+        plot_commands.append('PlotPairwiseFreq')
+    if plot_data['PlotResEne']['Run']:
+        plot_commands.append('PlotResEne')
+    if plot_data['PlotDSSP']['Run']:
+        plot_commands.append('PlotDSSP')
     
 
 else:
     p_json = False
     if args.commands:
         if 'all_plots' in commands:
-            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotPairwiseFreq', 'PlotBiophys', 'PlotSASA', 'PlotResEne', 'PlotiRMSD','PlotlRMSD', 'PlotFnonnat']
+            plot_commands = ['PlotRMSD', 'PlotRG', 'PlotRMSF', 'PlotBiophys', 'PlotSASA', 'PlotiRMSD','PlotlRMSD','PlotDockQ', 'PlotFnonnat','PlotFnat', 'PlotResEne','PlotPairwiseFreq', 'PlotDSSP',]
         else:
             plot_commands = [x for x in commands if 'plot' in x.lower()]
     else:
@@ -193,7 +207,7 @@ def main():
         if not stride:
             stride = 1
         if not split_models:
-            split_models=False
+            split_models=True
         if not timestep:
             timestep=1.0
         if remove_water is None:
@@ -206,7 +220,7 @@ def main():
         mol = dynabench(trajectory_file=trajectory_file, stride=stride, split_models=split_models, chains=chains, job_name=job_name, topology_file=topology_file,
                         show_time_as=time_as, timestep=timestep, time_unit=timeunit, remove_water=remove_water, remove_ions=remove_ions)
 
-        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\Trajectory File: {trajectory_file}\n\tTopology File: {topology_file}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
+        print(f'Your DynaBench Class has been created with the following parameters:\n\tJob Name:{mol.job_name}\n\tTrajectory File: {trajectory_file}\n\tTopology File: {topology_file}\n\tStride: {stride}\n\tSplit Models: {split_models}\n\tChain Selection: {chains}\n')
         print_stars(1)
         print("\n")
 
@@ -235,12 +249,16 @@ def main():
 
             if a_json_:
                 foldx_path = table_data['ResidueBased']['FoldX_path']
+                run_dssp = table_data['ResidueBased']['Run_DSSP']
             else:
                 foldx_path = args.foldx_path
+                run_dssp = args.run_dssp
             
+            if run_dssp is None:
+                run_dssp = True
             print('Running Residue Based Analysis...\n')
             start_time = datetime.now()
-            mol.run_res_based(foldx_path)
+            mol.run_res_based(foldx_path, run_dssp=run_dssp)
             end_time = datetime.now()
             print(f"Residue Based Analysis has run successfully!\nRunning duration: {end_time - start_time}\n")
             print_stars(1)
@@ -387,6 +405,20 @@ def main():
             print_stars(1)
             print("\n")
 
+        if 'PlotDockQ' in plot_commands:
+
+            if p_json:
+                dockq_tpath = plot_data['PlotDockQ']['dockq_path']
+
+            else:
+                dockq_tpath = args.dockq_tpath
+            
+            draw.plot_dockq(path=dockq_tpath)
+
+            print('DcokQ Score plot is done!\n')
+            print_stars(1)
+            print("\n")
+
         if 'PlotFnonnat' in plot_commands:
 
             if p_json:
@@ -396,6 +428,20 @@ def main():
                 fnonnat_tpath = args.fnonnat_tpath
             
             draw.plot_fnonnat(path=fnonnat_tpath)
+
+            print('Fraction of Non-Native Contacs plot is done!\n')
+            print_stars(1)
+            print("\n")
+        
+        if 'PlotFnat' in plot_commands:
+
+            if p_json:
+                fnat_tpath = plot_data['PlotFnat']['fnat_path']
+
+            else:
+                fnat_tpath = args.fnat_tpath
+            
+            draw.plot_fnat(path=fnat_tpath)
 
             print('Fraction of Native Contacs plot is done!\n')
             print_stars(1)
@@ -426,14 +472,31 @@ def main():
                 int_ene_itpath = plot_data['PlotResEne']['interface_table_path']
                 int_ene_tpath = plot_data['PlotResEne']['residue_based_table']
 
-                
-
             else:
                 int_ene_itpath = args.int_ene_itpath
                 int_ene_tpath = args.int_ene_tpath
 
             draw.plot_int_energy(thereshold=int_ene_thr, intf_path=int_ene_itpath, res_path=int_ene_tpath)
             print('Interface Residue Energies Boxplot is done!\n')
+            print_stars(1)
+            print("\n")
+
+        if 'PlotDSSP' in plot_commands:
+
+            if p_json:
+                dssp_path = plot_data['PlotDSSP']['dssp_path']
+                dssp_thereshold = plot_data['PlotDSSP']['dssp_thereshold']
+                dssp_intf_path = plot_data['PlotDSSP']['dssp_intf_path']
+
+            else:
+                dssp_path = args.dssp_tpath
+                dssp_thereshold = args.dssp_thereshold
+                dssp_intf_path = args.dssp_intf_tpath
+
+            if not dssp_thereshold:
+                dssp_thereshold=50.0
+            draw.plot_DSSP(path=dssp_path, thereshold=dssp_thereshold, intf_path=dssp_intf_path)
+            print('DSSP Analysis Plot is done!\n')
             print_stars(1)
             print("\n")
 

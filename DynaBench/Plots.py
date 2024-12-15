@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from DynaBench.handling import tables_errors
 import json
+from matplotlib import cm
+
 
 
 
@@ -43,9 +45,21 @@ class Plotter:
         self._ene_intf = None
         self._ene_path = None
         self._plot_SASA = False
+        self._sasa_path = None
         self._plot_irmsd = False
+        self._irmsd_path = None
         self._plot_fnonnat = False
+        self._fnonnat_path = None
         self._plot_lrmsd = False
+        self._lrmsd_path = None
+        self._plot_dockq = False
+        self._dockq_path = None
+        self._plot_fnat = False
+        self._fnat_path = None
+        self._plot_dssp = False
+        self._dssp_path = None
+        self._dssp_intf_path = None
+        self._dssp_thereshold = 50.0
 
         sns.set_style('whitegrid')
 
@@ -177,13 +191,16 @@ class Plotter:
         
         def get_jumpseq(data):
             sequence = list()
+            res_list = data["Residue Number"].tolist()
             for index,row in data.iterrows():
                 resnum = row['Residue Number']
-                if resnum == 0:
-                     resnum = 1
-
-                while len(sequence) < resnum - 1:
-                    sequence.append('.')
+                
+                res_num_idx = res_list.index(resnum)
+                latter = res_list[res_num_idx-1]
+                diff = resnum - latter
+                if diff != 1:
+                    for i in range(diff-1):
+                        sequence.append('.')
                 sequence.append(resnum)
             return sequence
         
@@ -201,7 +218,12 @@ class Plotter:
 
         for ind, (ax, x) in enumerate(zip(axes, np.unique(df1["Molecule"]))):
             data = groups.get_group(x)
-            if data.iloc[0]['Residue Number'] != 1 or data.iloc[-1]['Residue Number'] != len(data): #check the jump
+            first_resnum = data.iloc[0]['Residue Number']
+            last_resnum = data.iloc[-1]['Residue Number']
+            resnum_len = last_resnum - first_resnum
+
+            if resnum_len+1 != len(data): #check the jump
+
                 sequence = get_jumpseq(data)
 
                 ax.set_xlim([1,len(sequence)])
@@ -244,7 +266,7 @@ class Plotter:
                         idxs.append(idx + 1)
 
                 for el in overall_list:
-                    if len(el) > 1:
+                    if len(el) > 1:                        
                         ax.plot(el[0]["Residue Number"], el[0]["RMSF"], '-o', markevery=el[1], markersize=3.5,
                             color=self.chain_colors[ind], linewidth=3)
                         ax.plot(el[0]["Residue Number"], el[0]["RMSF"], 'o', markevery=el[1],
@@ -260,16 +282,21 @@ class Plotter:
 
             else:
                 if intf: #if no jmp, markers, intf yes
-                    int_data = g2.get_group(x)
-                    markers = [int(x[3:]) -1 for x in int_data["Residue"]]
-                    
 
-                    ax.plot(data["Residue Number"], data["RMSF"], '-o', markevery=markers, markersize=3.5,
+                    int_data = g2.get_group(x)
+                    
+                    res_list = int_data["Residue"].tolist()
+                    markerss = [int(x[3:]) -1 for x in res_list]
+                    l = data["Residue Number"].tolist()
+                    markers = [l.index(i) for i in markerss]
+
+                    ax.plot(data["Residue Number"], data["RMSF"],markevery=markers, markersize=3.5,
                             color=self.chain_colors[ind])
                     ax.plot(data["Residue Number"], data["RMSF"], 'o', markevery=markers,
                             label='Interface Residues', markersize=3.5, color="red")  #jump yok intf var
                     
                 else:
+                    
                     ax.plot(data["Residue Number"], data["RMSF"],
                             color=self.chain_colors[ind]) #jump yok intf yok
                 
@@ -299,18 +326,21 @@ class Plotter:
 
         
         self._irmsd_path = path
-        irmsds = df['iRMSD']
-        frames = df.columns[0]
-        frames_plot = df[frames]
+        
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, irmsds, label=df['mapping'], color=self.chain_colors[0])
 
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "iRMSD",data=data, label=i)
+        
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('iRMSD (Å)')
         ax.set_ylim(bottom=0)
 
         ax.set_title('iRMSD Analysis')
+        ax.legend(title="Mapping")
         fig.savefig(os.path.join(self.target_path, f'irmsd_analysis.png'), dpi=300)
 
     def plot_lrmsd(self, path=None):
@@ -329,12 +359,14 @@ class Plotter:
 
         
         self._lrmsd_path = path
-        lrmsds = df['lRMSD']
-        frames = df.columns[0]
-        frames_plot = df[frames]
+
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, lrmsds, label=df['mapping'], color=self.chain_colors[0])
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "lRMSD",data=data, label=i)
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('lRMSD (Å)')
@@ -342,7 +374,40 @@ class Plotter:
 
 
         ax.set_title('lRMSD Analysis')
+        ax.legend(title="Mapping")
         fig.savefig(os.path.join(self.target_path, f'lrmsd_analysis.png'), dpi=300)
+
+    def plot_dockq(self, path=None):
+        """A function to perform lineplot visualization of ligand RMSD through the simulation. Reads 'dockq_results.csv' file.
+        
+        Return: None
+        """
+
+        self._plot_dockq = True
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
+
+        
+        self._dockq_path = path
+        d = df.groupby("mapping")
+
+        fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "Total", data=data, label=i)
+
+        ax.set_xlabel(df.columns[0])
+        ax.set_ylabel('DockQ Score')
+        ax.set_ylim(bottom=0)
+
+        ax.legend(title="Mapping")
+        ax.set_title('DockQ Score Analysis')
+        fig.savefig(os.path.join(self.target_path, f'dockq_score.png'), dpi=300)
 
     def plot_fnonnat(self, path=None):
         """A function to perform lineplot visualization of fraction of native contacts through the simulation. Reads 'dockq_results.csv' file.
@@ -359,19 +424,52 @@ class Plotter:
             df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
 
         self._fnonnat_path = path
-        fnonnat = df['fnonnat']
-        frames = df.columns[0]
-        frames_plot=df[frames]    
+        d = df.groupby("mapping")
 
         fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
-        ax.plot(frames_plot, fnonnat, label=df['mapping'], color=self.chain_colors[0])
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "fnonnat",data=data, label=i)
+
+        ax.set_xlabel(df.columns[0])
+        ax.set_ylabel('Fraction of Non-Native Contacts')
+        ax.set_ylim(bottom=0)
+
+        ax.legend(title="Mapping")
+        ax.set_title('Fraction of Non-Native Contacts')
+        fig.savefig(os.path.join(self.target_path, f'fnonnat_analysis.png'), dpi=300)
+
+    def plot_fnat(self, path=None):
+        """A function to perform lineplot visualization of fraction of native contacts through the simulation. Reads 'dockq_results.csv' file.
+        
+        Return: None
+        """
+
+        self._plot_fnat = True
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "dockq_results.csv"))
+
+        self._fnat_path = path
+        d = df.groupby("mapping")
+
+        fig,ax  = plt.subplots(figsize=(5,2.7), layout='constrained')
+
+        for i in d.groups:
+            data = d.get_group(i)
+            ax.plot(data.columns[0], "fnat",data=data, label=i)
 
         ax.set_xlabel(df.columns[0])
         ax.set_ylabel('Fraction of Native Contacts')
         ax.set_ylim(bottom=0)
 
+        ax.legend(title="Mapping")
         ax.set_title('Fraction of Native Contacts')
-        fig.savefig(os.path.join(self.target_path, f'fnonnat_analysis.png'), dpi=300)
+        fig.savefig(os.path.join(self.target_path, f'fnat_analysis.png'), dpi=300)
 
     def plot_biophys(self, path=None):
         """A function to perform barplot core-rim and biophysical classification visualization. Reads 'inetrface_label.csv' file.
@@ -436,7 +534,6 @@ class Plotter:
 
         fig, ax = plt.subplots()
         sns.barplot(x="Interface Text", data=plot_df, hue="Biophysical Type", y="Count", ax=ax, palette=sns.color_palette(self._biophys_palette, 4))
-        # ax.get_xticklabels[3:].set_color("red")
         l = ["Support", "Rim", "Core"]
         for ind, i in enumerate(ax.get_xticklabels()):
             if ax.get_xticklabels()[ind].get_text() in l:
@@ -447,6 +544,80 @@ class Plotter:
 
         plt.title("Biophysical Classification Counts of Residues")
         fig.savefig(os.path.join(self.target_path, f'Biophys_count.png'), dpi=300)
+
+    def plot_DSSP(self, thereshold=50.0, intf_path=None, path=None):
+        self._plot_DSSP = True 
+        self._dssp_thereshold=thereshold
+        
+
+        if intf_path:
+            self.handler.test_inp_path(intf_path)
+            df = pd.read_csv(intf_path)
+
+        if path:
+            self.handler.test_inp_path(path)
+            df = pd.read_csv(path)
+        else:
+            df = pd.read_csv(os.path.join(self.table_path, "residue_based_tbl.csv"))
+            intf_df = pd.read_csv(os.path.join(self.table_path, "interface_label_perc.csv"))
+
+        self._dssp_path = path  
+        self._dssp_intf_path = intf_path
+
+        time_name = df.columns[0]
+
+        int_df = intf_df[(intf_df["Interface Label"] == 4) | (intf_df["Interface Label"] == 2) | (intf_df["Interface Label"] == 3) & (intf_df["Percentage"] >= thereshold)]
+
+        df = df.loc[:, [time_name,"Chain",'Residue', 'Residue Number', 'Secondary Structure']]
+
+        df["Residue"] = [a + str(b) for a, b in zip(df["Residue"], df["Residue Number"])]
+        mylabels = {
+            'H': 'Alpha Helix',
+            'B': 'Beta Bridge',
+            'E': 'Strand',
+            'G': 'Helix-3',
+            'I': 'Helix-5',
+            'T': 'Turn',
+            'S': 'Bend',
+            'Null': 'Null',
+            'P': 'Coil',
+            'C': 'Coil',
+            '!': 'Chain Break'
+        }
+
+        # Load data
+        interface_groupped = int_df.groupby('Chain')
+
+        groups = df.groupby(['Chain'])
+        fig, axes = plt.subplots(len(groups), 1, figsize=(14, 10))
+        
+        for ax, chain, interface in zip(axes, groups, interface_groupped):
+        
+            chain_df = chain[1]
+
+            intf_ch = interface[1]
+
+            for index,row in chain_df.iterrows():
+                if row['Residue'] not in intf_ch['Residue'].tolist():
+                    chain_df.drop(index, inplace=True)
+
+            sns.scatterplot(data=chain_df, x=chain_df.columns[0], y="Residue", hue="Secondary Structure", palette="deep", marker="s", ax=ax,s=50)
+
+            ax.set_xlabel(f'{time_name}')
+            ax.set_ylabel('Residue')
+            ax.set_title(f"Chain {chain[0][0]}", fontsize=14)
+            ax.tick_params(labelsize=9)
+            ax.get_legend().remove()
+            ax.xaxis.label.set_size(12)
+            ax.yaxis.label.set_size(12)
+            handles, labels = ax.get_legend_handles_labels()
+    
+        # Add labels and legend
+        plt.suptitle("DSSP Analysis for Interface Residues", fontsize=18)
+        fig.legend(handles, [mylabels[i] for i in labels ],ncol=3, loc='upper left') ## ortak legend
+        plt.tight_layout()
+        fig.subplots_adjust(hspace=0.20)
+        fig.savefig(os.path.join(self.target_path, f'dssp_analysis.png'), dpi=300)
 
     def plot_SASA(self, path=None):
         """A function to perform line plot Interface Area in A^2 visualization for each chain and the overall complex. 'Reads residue_based_tbl.csv' file.
@@ -601,7 +772,7 @@ class Plotter:
 
             plt.xticks(rotation='vertical')
 
-            plt.xticks(fontsize=10, fontweight='bold', rotation=85)
+            plt.xticks(fontsize=12, fontweight='bold', rotation=85)
             plt.yticks([x for x in range(0,101,10)], fontsize=13, fontweight='bold')
 
             plt.title(f"General {x.strip('bond').capitalize()}-bond Percentage to Simulation Time", fontweight='bold', size=20)
@@ -695,9 +866,18 @@ class Plotter:
                 'irmsd_path': self._lrmsd_path,
 
             },
+            'PlotDockQ': {
+                'Run': self._plot_dockq,
+                'irmsd_path': self._dockq_path,
+
+            },
             'PlotFnonnat': {
                 'Run': self._plot_fnonnat,
                 'fnonnat_path': self._fnonnat_path
+            },
+            'PlotFnat': {
+                'Run': self._plot_fnat,
+                'fnat_path': self._fnat_path
             },
             'PlotPairwiseFreq': {
                 'Run': self._bar,
@@ -710,6 +890,12 @@ class Plotter:
                 'interface_table_path': self._ene_intf,
                 'residue_based_table': self._ene_path
                 },
+            'PlotDSSP': {
+                'Run': self._plot_dssp,
+                'dssp_path': self._dssp_path,
+                'dssp_thereshold':self._dssp_thereshold,
+                'dssp_intf_path':self._dssp_intf_path
+            },
 
             }
         json_path = os.path.join(self.job_path, 'plot_params.json')

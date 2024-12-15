@@ -1,5 +1,6 @@
 import os
 import MDAnalysis as mda
+import subprocess
 
 class tables_errors():
     def __init__(self) -> None:
@@ -48,4 +49,25 @@ class tables_errors():
         for el in v:
             if el not in c:
                 raise Exception(f"Chain {el} could not found in pdb. Plase provide a valid chain ID.")
+
+    def check_dssp(self, myos):
+        commands = ['which', 'mkdssp']
+        if myos == 'win32':
+            commands.insert(0,'wsl')
+        result = subprocess.run(
+                commands,
+                stdout = subprocess.PIPE,
+            )
+        if b"not found" in result.stdout:
+            raise Exception("mkdssp not found. Please install mkdssp by 'sudo apt-get mkdssp'")
         
+    def check_wsl(self):
+        result = subprocess.run(
+                ['where', 'wsl'],
+                stdout = subprocess.PIPE,
+            )
+        if b"not found" in result.stdout:
+            raise Exception("WSL not found. Please install WSL by 'wsl --install'")
+        
+
+
