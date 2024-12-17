@@ -597,9 +597,8 @@ class Plotter:
 
             intf_ch = interface[1]
 
-            for index,row in chain_df.iterrows():
-                if row['Residue'] not in intf_ch['Residue'].tolist():
-                    chain_df.drop(index, inplace=True)
+            intf_residues = intf_ch['Residue'].tolist()
+            chain_df = chain_df[chain_df['Residue'].isin(intf_residues)]
 
             sns.scatterplot(data=chain_df, x=chain_df.columns[0], y="Residue", hue="Secondary Structure", palette="deep", marker="s", ax=ax,s=50)
 
