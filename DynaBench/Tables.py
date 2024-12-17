@@ -848,7 +848,7 @@ class dynabench:
 
             l = 0
 
-            for i, (rasm_obj, rasc_obj) in enumerate(zip(rasm_chained, rasc_array)):
+            for i, (rasm_obj, rasc_obj) in enumerate(zip(rasm_chained, self.rasc_array)):
                 model_index = i
                 rasm_list = [freesasa.calc(a).residueAreas() for  a in rasm_obj] #list of dicts
                 #print(rasm_list)
