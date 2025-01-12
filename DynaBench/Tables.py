@@ -1,5 +1,4 @@
 import os
-
 import MDAnalysis
 import freesasa
 import MDAnalysis as mda
@@ -18,7 +17,9 @@ import time
 from sys import platform
 from shutil import make_archive
 import shutil
+import warnings
 
+#warnings.filterwarnings("ignore")
 freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
 
@@ -438,7 +439,7 @@ class dynabench:
                     native = os.path.join(files_path, file)
 
                 #else:
-                proc = subprocess.Popen(['DockQ', f'{os.path.join(files_path, file)}', f'{native}', '--short'],stdout=subprocess.PIPE)
+                proc = subprocess.Popen(['DockQ', f'{os.path.join(files_path, file)}', f'{native}', '--short'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 lines = proc.stdout.readlines()
 
                 for line in lines:
@@ -468,7 +469,6 @@ class dynabench:
 
             Return: None
             """
-            
 
             file = open(os.path.join(self.target_path, "QualityControl-overres.csv"), "w")
 
@@ -689,8 +689,8 @@ class dynabench:
             f_new_path = os.path.join(models_path,f_name)
             shutil.copyfile(foldx_exe_path, f_new_path)
             for i in os.listdir(models_path):
-                if file.split('.')[-1] == 'pdb':
-                    subprocess.run([f"{f_name}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb={i}'], stdout=subprocess.DEVNULL)
+                if i.split('.')[-1] == 'pdb' and "foldx" not in i:
+                    subprocess.run([f"{f_name}", '--command=SequenceDetail', f'--output-dir={output_path}', f'--pdb={i}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             os.chdir(current)
 
             os.remove(f_new_path)
@@ -836,79 +836,45 @@ class dynabench:
 
             file.write(",".join(self.header))
 
-            i = 0
+            rasac_array = [freesasa.calc(i).residueAreas() for  i in self.rasac_array]
 
-            chains = freesasa.calc(self.rasc_array[0]).residueAreas().keys()
+            chain_len = len(rasac_array[0])
+            rasm_array = list()
+            for i in range(0, len(self.rasam_array), chain_len):
+                group = self.rasam_array[i:i + chain_len]
+                merged_dict = {}
+                for obj in group:
+                    dict_from_obj = freesasa.calc(obj).residueAreas()
+                    merged_dict.update(dict_from_obj)  # Sözlükleri birleştir
+                rasm_array.append(merged_dict)
+            #rasm_array = [{**freesasa.calc(self.rasam_array[i]).residueAreas(), **freesasa.calc(self.rasam_array[i+1]).residueAreas()} for i in range(0, len(self.rasam_array)-1, chain_len)]
 
-            #print(chains)
-            chain_len = len(chains)
-
-            rasm_chained = [(self.rasm_array[i], self.rasm_array[i+1]) for i in range(0, len(self.rasm_array)-1, chain_len)]
-            #print(rasm_chained)
-
-            l = 0
-
-            for i, (rasm_obj, rasc_obj) in enumerate(zip(rasm_chained, self.rasc_array)):
-                model_index = i
-                rasm_list = [freesasa.calc(a).residueAreas() for  a in rasm_obj] #list of dicts
-                #print(rasm_list)
-                rasm_dict = rasm_list[0]
-                for i in range(1,len(rasm_list)):
-                    rasm_dict.update(rasm_list[i])
-                
-                rasc_dict = freesasa.calc(rasc_obj).residueAreas()
-                chain_names = rasc_dict.keys()
-                
-                for chain in chain_names:
-                    rasm_chain = rasm_dict[chain]
-                    rasc_chain = rasc_dict[chain]
-                    #print(rasm_chain)
-                    #print(rasc_chain)
-
-
-            for frame, frame_obj in enumerate(self.rasac_array):  # stride'ı frame'i düzenlemek için kullan
-                rasc_res_frame = freesasa.calc(frame_obj).residueAreas()  # first, get the first frame from rasc
-
-                chain_len = len(rasc_res_frame.keys())  # get the total chain num
-
-                monomer_list = []
-                for x in range(chain_len):
-                    rasm_res_frame = freesasa.calc(
-                        self.rasam_array[i]).residueAreas()  # get the chains of this frame from rasm.
-                    monomer_list.append(rasm_res_frame)
-                    i += 1
-
-                for key, value in rasc_res_frame.items():  # iterate through chains by using rasc dict., key=chain
-                    rasm_chain_dict = [x for x in monomer_list if key in x.keys()][0]  # get the rasm dict of this chain
-
-                    for resnum, val in value.items():
+            for frame, frame_obj in enumerate(rasac_array):  # stride'ı frame'i düzenlemek için kullan
+                for chain, chain_mol in frame_obj.items():  # iterate through chains by using rasc dict., key=chain
+                    for resnum, val in chain_mol.items():
                         rasc = val.relativeTotal
-                        rasm = rasm_chain_dict[key][resnum].relativeTotal
-                        rasm_total = rasm_chain_dict[key][resnum].total
+                        rasm = rasm_array[frame][chain][resnum].relativeTotal
+                        rasm_total = rasm_array[frame][chain][resnum].total
                         delta_ras = rasm - rasc
                         nbsa = (rasm * rasm_total) / 100
-
                         label = self._calc_interface_class(delta_ras, rasc, rasm)
                         try:
                             biophy_class = self._calc_biophys_type(val.residueType)
                         except:
                             biophy_class = None
-
-                        name = f"{key.upper()}{val.residueNumber}{val.residueType}"
+                        name = f"{chain.upper()}{val.residueNumber}{val.residueType}"
                         try:
                             obj = self.energies[frame][name]
                         except:
                             continue
-                        
                         if self.time_type == 'Time':
                             t = int(frame) * int(self.stride) * float(self.timestep)
                         else:
                             t = frame * self.stride
-                        
-                        row = f"{round(t,3)},{key},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{f'{nbsa:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
+                        row = f"{round(t,3)},{chain},{val.residueType},{resnum},{f'{rasc:.03f}'},{f'{rasm:.03f}'}, {f'{delta_ras:.03f}'},{f'{nbsa:.03f}'},{label},{biophy_class},{f'{obj.bb_hbond:.03f}'},{f'{obj.sc_hbond:.03f}'},{f'{obj.vdw:.03f}'},{f'{obj.elec:.03f}'},{f'{obj.total:.03f}'}\n"
 
                         if self.run_dssp:
-                            sec_structure = self.dssp_data.loc[(self.dssp_data['frame']==int(frame)+1)&(self.dssp_data['resnum']==str(resnum))&(self.dssp_data['chain']==key), 'secstruc']
+                            sec_structure = self.dssp_data.loc[(self.dssp_data['frame']==int(frame)+1)&(self.dssp_data['resnum']==str(resnum))&(self.dssp_data['chain']==chain), 'secstruc']
                             mlist = sec_structure.tolist()
 
                             row = row.rstrip("\n")
