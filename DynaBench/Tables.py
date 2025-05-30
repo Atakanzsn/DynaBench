@@ -19,7 +19,7 @@ from shutil import make_archive
 import shutil
 import warnings
 
-#warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore")
 freesasa.setVerbosity(freesasa.silent)
 handler = hp.tables_errors()
 
@@ -82,32 +82,65 @@ class dynabench:
         file_name = trajectory_file.split(".")[0]
         file_ext = trajectory_file.split(".")[-1]
 
+
         if file_ext == 'dcd':
             name = file_name.split("\\")[-1].split(".")[0]
             out_file = os.path.join(self.job_path, f"{name}.pdb")
             if not self.topology_file:
-                self.topology_file = input('Please provide input pdb file:\n')
+                self.topology_file = input('Please provide topology file:\n')
 
-            remove_chains=[]
+            get_chains=[]
             if remove_water:
-                remove_chains.append('V')
+                get_chains.append('V')
             if remove_ions:
-                remove_chains.append('S')
-            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.trajectory_file_, out_file, stride, self.topology_file, chains=remove_chains))
+                get_chains.append('S')
+
+            u = mda.Universe(self.topology_file, trajectory_file)
+            c = np.unique(u.atoms.segids)
+            if len(c) > 2 and self.chains_ is None:
+                sc = input("Please select 2 chains to analyze: ")
+                s = sc.split(",")
+            else:
+                s = None
+            
+            self.pdb_file = os.path.join(self.job_path, self._preprocess_dcd(self.trajectory_file_, out_file, stride, self.topology_file, sc=s, chains=get_chains))
 
         elif file_ext == 'pdb':
+            u = mda.Universe(trajectory_file)
+                
+            chain_len = len(np.unique(u.atoms.segids))
+            if chain_len > 2 and self.chains_ is None:
+                sc = input("Please select 2 chains to analyze: ")
+
+                sel = []
+                for i in sc:
+                    sel.append(f"chainID {i.upper()}")
+
+                a = u.select_atoms(' or '.join(sel))
+            else:
+                a = u.atoms
             if self.stride != 1:
                 name = file_name.split("\\")[-1]
                 out_file = os.path.join(self.job_path, f"{name}_stride{stride}.pdb")
-                u = mda.Universe(trajectory_file)
-
+                
                 with mda.Writer(out_file, u.atoms.n_atoms) as W:
                     for ts in u.trajectory[::stride]:
-                        W.write(u.atoms)
+                        W.write(a)
 
                 self.pdb_file = out_file
             else:
-                self.pdb_file = trajectory_file
+                if chain_len > 2 and self.chains_ is None:
+                    sc = input("Please select 2 chains to analyze: ")
+                    name = file_name.split("\\")[-1]
+                    out_file = os.path.join(self.job_path, f"{name}_ch_{sel}.pdb")
+                    
+                    with mda.Writer(out_file, u.atoms.n_atoms) as W:
+                        for ts in u.trajectory:
+                            W.write(a)
+
+                    self.pdb_file = out_file
+                else:
+                    self.pdb_file = trajectory_file
 
         #check for split models
         if split_models:
@@ -187,15 +220,16 @@ class dynabench:
         Return: None
         """
         now = os.getcwd()
+        file_path = os.path.abspath(file)
         models_path = os.path.join(job_path, 'models')
         if not os.path.exists(models_path):
             os.mkdir(models_path)
         os.chdir(models_path)
-        os.system(f"pdb_splitmodel {file}")
+        os.system(f"pdb_splitmodel {file_path}")
         os.chdir(now)
 
     @staticmethod
-    def _preprocess_dcd(trajectory_file, output_file, stride, topology_file, chains=list):
+    def _preprocess_dcd(trajectory_file, output_file, stride, topology_file, sc, chains=list):
         """ Transforms input trajectory file into the .pdb file for given stride value.
         
         Keyword arguments:
@@ -220,13 +254,22 @@ class dynabench:
             return ret
 
         frames = get_stride(stride,fr_list) 
+
         with mda.Writer(output_file, multiframe=True) as W:
             for t in frames:
                 u.trajectory[t]
-                W.write(u.atoms)
+                if sc:
+                    sel = []
+                    for i in sc:
+                        sel.append(f"chainID {i.upper()}")
+
+                    a = u.select_atoms(' or '.join(sel))
+                else:
+                    a = u.atoms
+                
+                W.write(a)
 
         ptm.main2(output_file, chains)
-        #os.system(f'python pdb_tool_modified.py -V,S {output_file} > {name}_chained.pdb')
 
         return name + "_chained.pdb"
         
@@ -351,7 +394,6 @@ class dynabench:
             proteins = {}
             for chain in self.segs:
                 chainid = chain.segid
-                #if chainid != "SOLV" and chainid != "IONS":
 
                 proteins[chainid] = self.u.select_atoms(f"chainid {chainid} and protein")
                 analysis[f"Chain {chainid}"] = []
@@ -377,7 +419,6 @@ class dynabench:
             analysis = {}
             for chain in self.segs:
                 chainid = chain.segid
-                #if chainid != "SOLV" and chainid != "IONS":
                 analysis[chainid] = []
 
                 calphas_p = self.protein.select_atoms(f'chainid {chainid} and name CA')

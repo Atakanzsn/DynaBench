@@ -696,9 +696,6 @@ class Plotter:
         
         backbones = ["HN", "N", "CA", "HA", "C", "O"]
 
-        #sim_time = len(np.unique(df.iloc[:,0].tolist()))
-
-        #df = df.groupby('itype')
         #first, find percentage of pairwises
         for x,palet in zip(df.groups, self._bar_palette):
             ll = dict()
